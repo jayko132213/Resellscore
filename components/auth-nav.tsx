@@ -1,0 +1,159 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { ArrowUp, Crown, ShieldCheck, Star, UserCircle } from "lucide-react";
+import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
+import { normalizePlan, type PlanKey } from "@/lib/plans";
+
+type DemoUser = {
+  email: string;
+  pseudo?: string;
+  avatar?: string;
+  avatarZoom?: number;
+  plan?: PlanKey;
+};
+
+function isDemoMode() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
+  return url.includes("example.supabase.co") || key === "demo-key";
+}
+
+function cleanUser(user: DemoUser): DemoUser {
+  return {
+    ...user,
+    pseudo: user.pseudo === "VintedScout" ? "" : user.pseudo
+  };
+}
+
+function planBadge(plan: PlanKey) {
+  if (plan === "elite") {
+    return {
+      ring: "border-accent shadow-[0_0_22px_rgba(74,222,128,0.35)]",
+      text: "bg-accent text-ink",
+      icon: <Crown size={11} />
+    };
+  }
+  if (plan === "pro") {
+    return {
+      ring: "border-sky-300 shadow-[0_0_18px_rgba(125,211,252,0.25)]",
+      text: "bg-sky-400 text-ink",
+      icon: <ShieldCheck size={11} />
+    };
+  }
+  if (plan === "starter") {
+    return {
+      ring: "border-amber-300 shadow-[0_0_18px_rgba(252,211,77,0.22)]",
+      text: "bg-amber-300 text-ink",
+      icon: <Star size={11} />
+    };
+  }
+  return {
+    ring: "border-stone-300/35",
+    text: "bg-stone-300 text-ink",
+    icon: null
+  };
+}
+
+export function AuthNav({ serverSignedIn = false }: { serverSignedIn?: boolean }) {
+  const [user, setUser] = useState<DemoUser | null>(null);
+  const [signedIn, setSignedIn] = useState(serverSignedIn);
+
+  useEffect(() => {
+    function loadDemoUser() {
+      const stored = localStorage.getItem("resellscore_demo_user");
+      if (stored) {
+        const parsed = cleanUser(JSON.parse(stored) as DemoUser);
+        setUser(parsed);
+        setSignedIn(true);
+        localStorage.setItem("resellscore_demo_user", JSON.stringify(parsed));
+      }
+    }
+
+    if (isDemoMode()) {
+      loadDemoUser();
+      window.addEventListener("resellscore-user-updated", loadDemoUser);
+      window.addEventListener("storage", loadDemoUser);
+      return () => {
+        window.removeEventListener("resellscore-user-updated", loadDemoUser);
+        window.removeEventListener("storage", loadDemoUser);
+      };
+    }
+
+    createSupabaseBrowserClient().auth.getUser().then(({ data }) => {
+      setSignedIn(Boolean(data.user));
+      setUser(data.user ? { email: data.user.email || "", pseudo: data.user.user_metadata?.pseudo } : null);
+    });
+  }, []);
+
+  const displayName = user?.pseudo?.trim() || "";
+  const activePlan = normalizePlan(user?.plan);
+  const badge = planBadge(activePlan);
+
+  return (
+    <div className="flex items-center gap-3">
+      <Link href={signedIn ? "/analyze" : "/signup"} className="rounded-md bg-accent px-4 py-2 font-semibold text-ink shadow-[0_0_24px_rgba(74,222,128,0.18)]">
+        Analyser
+      </Link>
+      <Link href="/opportunities" className="hidden rounded-md border border-accent/25 px-4 py-2 font-medium text-accent hover:bg-accent/10 md:inline-flex">
+        <span className="inline-flex items-center gap-2">
+          Tendances
+          <span className="inline-flex items-center gap-1 rounded-full bg-accent px-2 py-0.5 text-[10px] font-black uppercase text-ink">
+            <ArrowUp size={11} />
+            Elite
+          </span>
+        </span>
+      </Link>
+      <Link href="/pre-achat" className="hidden rounded-md border border-white/15 px-4 py-2 font-medium text-white hover:bg-white/10 md:inline-flex">
+        <span className="inline-flex items-center gap-2">
+          Pré-achat
+          <span className="inline-flex items-center gap-1 rounded-full border border-amber-300/35 bg-amber-400/15 px-2 py-0.5 text-[10px] font-black uppercase text-amber-200">
+            <Star size={11} />
+            Starter+
+          </span>
+        </span>
+      </Link>
+      <Link href="/vente" className="hidden rounded-md border border-white/15 px-4 py-2 font-medium text-white hover:bg-white/10 md:inline-flex">
+        <span className="inline-flex items-center gap-2">
+          Vente
+          <span className="inline-flex items-center gap-1 rounded-full border border-sky-300/35 bg-sky-400/15 px-2 py-0.5 text-[10px] font-black uppercase text-sky-200">
+            <ShieldCheck size={11} />
+            Pro+
+          </span>
+        </span>
+      </Link>
+      <Link href="/pricing" className="rounded-md border border-white/15 px-4 py-2 font-medium text-white hover:bg-white/10">
+        Tarifs
+      </Link>
+      {signedIn ? (
+        <Link href="/profile" className="flex min-h-10 items-center gap-2 rounded-md border border-white/15 bg-white/10 px-3 py-2 font-medium text-white hover:bg-white/15" aria-label="Profil">
+          {user?.avatar ? (
+            <span className={`relative h-8 w-8 overflow-visible rounded-full border-2 ${badge.ring}`}>
+              {activePlan !== "free" && (
+                <span className={`absolute -right-1 -top-2 z-10 inline-flex h-4 min-w-4 items-center justify-center rounded-full px-1 ${badge.text}`}>
+                  {badge.icon}
+                </span>
+              )}
+              <img src={user.avatar} alt="" className="h-full w-full object-cover" style={{ transform: `scale(${user.avatarZoom || 1})` }} />
+            </span>
+          ) : (
+            <span className={`relative grid h-8 w-8 place-items-center rounded-full border-2 bg-white/5 ${badge.ring}`}>
+              {activePlan !== "free" && (
+                <span className={`absolute -right-1 -top-2 z-10 inline-flex h-4 min-w-4 items-center justify-center rounded-full px-1 ${badge.text}`}>
+                  {badge.icon}
+                </span>
+              )}
+              <UserCircle size={22} className={activePlan === "free" ? "text-stone-300" : "text-accent"} />
+            </span>
+          )}
+          {displayName && <span className="hidden max-w-24 truncate sm:inline">{displayName}</span>}
+        </Link>
+      ) : (
+        <Link href="/login" className="rounded-md bg-white px-4 py-2 font-semibold text-ink">
+          Connexion
+        </Link>
+      )}
+    </div>
+  );
+}

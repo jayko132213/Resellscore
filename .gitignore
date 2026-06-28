@@ -1,0 +1,16 @@
+.next
+node_modules
+.env
+.env.local
+.vercel
+dist
+coverage
+*.log
+.pnpm-store
+tsconfig.tsbuildinfo
+outputs
+work
+vercel-upload-clean-*
+resellscore-vercel-NOUVEAU-*
+A_DEPLOYER_SUR_VERCEL_*
+*.zip

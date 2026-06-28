@@ -1,0 +1,12 @@
+<svg width="820" height="220" viewBox="0 0 820 220" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect x="18" y="18" width="184" height="184" rx="42" fill="#07110D"/>
+  <path d="M58 136C76 102 96 84 118 84C138 84 152 96 170 80" stroke="#35E27A" stroke-width="15" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M154 78H176V100" stroke="#35E27A" stroke-width="13" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M64 160H174" stroke="#F4F1E8" stroke-width="12" stroke-linecap="round"/>
+  <circle cx="82" cy="112" r="11" fill="#F4F1E8"/>
+  <circle cx="119" cy="84" r="11" fill="#F4F1E8"/>
+  <circle cx="156" cy="94" r="11" fill="#F4F1E8"/>
+  <text x="230" y="129" fill="#F4F1E8" font-family="Inter, Arial, sans-serif" font-size="76" font-weight="800" letter-spacing="0">Resell</text>
+  <text x="481" y="129" fill="#35E27A" font-family="Inter, Arial, sans-serif" font-size="76" font-weight="800" letter-spacing="0">Score</text>
+  <text x="235" y="166" fill="#9FB3A7" font-family="Inter, Arial, sans-serif" font-size="24" font-weight="600" letter-spacing="2">ACHAT - REVENTE - MARGE</text>
+</svg>
