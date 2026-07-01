@@ -16,7 +16,11 @@ type LiveOpportunity = {
   category: string;
   score: number;
   buy: number;
+  listingPrice: number;
+  retail: number;
   resale: number;
+  margin: number;
+  marginRate: number;
   demand: number;
   popularity: number;
   link: string;
@@ -395,10 +399,10 @@ export function WeeklyOpportunities() {
           <div>
             <p className="flex items-center gap-2 text-sm font-bold text-accent">
               {liveLoading ? <Loader2 size={16} className="animate-spin" /> : <ExternalLink size={16} />}
-              Annonces directes
+              Annonces directes premium
             </p>
             <p className="mt-2 text-sm leading-6 text-muted">
-              Le scanner essaie de trouver des annonces Vinted recentes et directement cliquables. Si Vinted bloque, ResellScore affiche les tendances a chercher.
+              Le live garde seulement les annonces ou le prix Vinted est lu, sous le budget, avec une marge assez forte. Si le prix est bloque, l'annonce ne s'affiche pas.
             </p>
           </div>
           <button
@@ -423,7 +427,7 @@ export function WeeklyOpportunities() {
 
         {liveItems.length > 0 ? (
           <div className="mt-4 grid gap-3 lg:grid-cols-2">
-            {liveItems.slice(0, 8).map((item) => (
+            {liveItems.slice(0, 6).map((item) => (
               <a
                 key={item.id}
                 href={item.link}
@@ -438,12 +442,15 @@ export function WeeklyOpportunities() {
                   </div>
                   <span className="shrink-0 rounded-full bg-accent px-3 py-1 text-xs font-black text-ink">{item.score}/10</span>
                 </div>
-                <div className="mt-3 grid grid-cols-3 gap-2 text-xs">
-                  <Mini label="Achat est." value={`${item.buy} EUR`} />
-                  <Mini label="Revente" value={`${item.resale} EUR`} />
+                <div className="mt-3 grid grid-cols-2 gap-2 text-xs sm:grid-cols-3">
+                  <Mini label="Prix annonce" value={`${item.listingPrice || item.buy} EUR`} highlight />
+                  <Mini label="Prix neuf estime" value={`${item.retail} EUR`} />
+                  <Mini label="Revente visee" value={`${item.resale} EUR`} />
+                  <Mini label="Marge brute" value={`+${item.margin} EUR`} highlight />
+                  <Mini label="Marge" value={`${Math.round(item.marginRate * 100)}%`} />
                   <Mini label="Demande" value={`${item.demand}%`} />
                 </div>
-                <p className="mt-3 text-sm leading-6 text-slate-300">{item.signal} · {item.reason}</p>
+                <p className="mt-3 text-sm leading-6 text-slate-300">{item.signal} - {item.reason}</p>
                 <p className="mt-2 text-xs leading-5 text-amber-100">Risque : {item.risk}</p>
                 <p className="mt-3 inline-flex items-center gap-2 text-xs font-bold text-accent">
                   Ouvrir l'annonce Vinted
@@ -454,7 +461,7 @@ export function WeeklyOpportunities() {
           </div>
         ) : (
           <div className="mt-4 rounded-md border border-white/10 bg-white/[0.03] p-4 text-sm leading-6 text-muted">
-            {liveLoading ? "Recherche des annonces Vinted en cours..." : liveMessage || "Aucune annonce directe detectee pour le moment."}
+            {liveLoading ? "Recherche des annonces Vinted avec prix reel en cours..." : liveMessage || "Aucune annonce directe fiable detectee pour le moment."}
           </div>
         )}
       </section>
@@ -533,11 +540,11 @@ function Row({ label, value, strong = false }: { label: string; value: string; s
   );
 }
 
-function Mini({ label, value }: { label: string; value: string }) {
+function Mini({ label, value, highlight = false }: { label: string; value: string; highlight?: boolean }) {
   return (
-    <div className="rounded-md border border-white/10 bg-black/10 p-2">
+    <div className={cn("rounded-md border p-2", highlight ? "border-accent/35 bg-accent/10" : "border-white/10 bg-black/10")}>
       <p className="text-[10px] uppercase tracking-wide text-muted">{label}</p>
-      <p className="mt-1 font-black text-white">{value}</p>
+      <p className={cn("mt-1 font-black", highlight ? "text-accent" : "text-white")}>{value}</p>
     </div>
   );
 }
