@@ -5,9 +5,6 @@ export async function GET() {
   const provider = getConfiguredAiProvider();
 
   return NextResponse.json({
-    aiEnabled: provider !== "fallback",
-    provider,
-    openaiEnabled: provider === "openai",
-    geminiEnabled: provider === "gemini"
+    aiEnabled: provider !== "fallback"
   });
 }

@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import { useEffect, useState } from "react";
-import { Camera, FileText, Link2, Loader2, Sparkles, Upload } from "lucide-react";
+import { Camera, FileText, Link2, Loader2, Upload } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { detectListingWarnings, warningPenalty } from "@/lib/listing-risk";
 import type { AnalysisResult } from "@/lib/types";
@@ -308,18 +308,15 @@ export function AnalyzeForm({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [aiReady, setAiReady] = useState(false);
-  const [aiProvider, setAiProvider] = useState<"openai" | "gemini" | "fallback">("fallback");
 
   useEffect(() => {
     fetch("/api/ai/status", { cache: "no-store" })
       .then((response) => response.json())
       .then((data) => {
         setAiReady(Boolean(data.aiEnabled));
-        setAiProvider(data.provider || "fallback");
       })
       .catch(() => {
         setAiReady(false);
-        setAiProvider("fallback");
       });
   }, []);
 
@@ -406,13 +403,6 @@ export function AnalyzeForm({
   return (
     <div className="mt-8 grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
       <form action={onSubmit} className="grid gap-5 rounded-lg border border-white/10 bg-panel p-5">
-        <div className={`rounded-md border p-3 text-sm ${aiReady ? "border-accent/25 bg-accent/10 text-accent" : "border-white/10 bg-white/[0.03] text-muted"}`}>
-          <span className="flex items-center gap-2 font-semibold">
-            <Sparkles size={16} />
-            {aiReady ? `${aiProvider === "openai" ? "OpenAI" : "Gemini"} actif : analyse approfondie, avec secours interne si le réseau bloque` : "IA non configurée : estimation interne de démonstration"}
-          </span>
-        </div>
-
         <div>
           <p className="text-sm font-semibold text-white">Choisis ta méthode d'analyse</p>
           <div className="mt-3 grid gap-3 md:grid-cols-3">

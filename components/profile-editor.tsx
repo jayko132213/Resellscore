@@ -253,7 +253,7 @@ export function ProfileEditor() {
 
   return (
     <form action={onSubmit} className="mt-8 grid max-w-xl gap-5 rounded-lg border border-white/10 bg-panel p-5">
-      <AiSetupCard />
+      {user.isAdmin && <AiSetupCard />}
       {loadingProfile && <p className="rounded-md border border-white/10 bg-white/5 p-3 text-sm text-muted">Chargement du profil...</p>}
 
       <section className="rounded-lg border border-accent/20 bg-accent/[0.05] p-4">
