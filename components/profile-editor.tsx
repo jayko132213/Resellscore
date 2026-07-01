@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Camera, CreditCard, Crown, Save, ShieldCheck, Star, Upload } from "lucide-react";
+import { Camera, CreditCard, Crown, LogOut, Save, ShieldCheck, Star, Upload } from "lucide-react";
 import { Button } from "./ui/button";
 import { plans, normalizePlan, type PlanKey } from "@/lib/plans";
 import { AiSetupCard } from "./ai-setup-card";
@@ -12,6 +12,7 @@ type DemoUser = {
   avatar?: string;
   avatarZoom?: number;
   plan?: PlanKey;
+  isAdmin?: boolean;
   subscriptionStatus?: "inactive" | "active" | "past_due" | "cancelled";
   subscriptionStartedAt?: string;
   subscriptionRenewalAt?: string;
@@ -92,6 +93,7 @@ export function ProfileEditor() {
 
           const next = cleanUser({
             email: payload.user?.email || payload.profile.email || "",
+            isAdmin: Boolean(payload.user?.isAdmin),
             pseudo: payload.profile.pseudo || "",
             avatar: payload.profile.avatar_url || "",
             plan: payload.plan,
@@ -190,10 +192,50 @@ export function ProfileEditor() {
     setTimeout(() => setSaved(false), 1800);
   }
 
-  function changeDemoPlan(plan: PlanKey) {
+  async function signOut() {
+    if (isDemoMode()) {
+      localStorage.removeItem("resellscore_demo_user");
+      window.dispatchEvent(new Event("resellscore-user-updated"));
+      window.location.assign("/");
+      return;
+    }
+
+    const { createSupabaseBrowserClient } = await import("@/lib/supabase/browser");
+    await createSupabaseBrowserClient().auth.signOut();
+    localStorage.removeItem("resellscore_demo_user");
+    window.location.assign("/");
+  }
+
+  async function changeDemoPlan(plan: PlanKey) {
     const now = new Date();
     const renewal = new Date(now);
     renewal.setDate(renewal.getDate() + 30);
+
+    if (!isDemoMode()) {
+      const response = await fetch("/api/profile/test-plan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ plan })
+      });
+      const payload = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        setError(payload.error || "Impossible de changer le plan.");
+        return;
+      }
+
+      const next = cleanUser({
+        ...user,
+        plan,
+        subscriptionStatus: plan === "free" ? "inactive" : "active",
+        subscriptionRenewalAt: payload.expiresAt || undefined
+      });
+
+      localStorage.setItem("resellscore_demo_user", JSON.stringify(next));
+      setUser(next);
+      window.dispatchEvent(new Event("resellscore-user-updated"));
+      return;
+    }
 
     const next = cleanUser({
       ...user,
@@ -237,18 +279,21 @@ export function ProfileEditor() {
         </div>
 
         <div className="mt-4 border-t border-white/10 pt-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted">Changer le plan en test</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted">
+            {user.isAdmin || isDemoMode() ? "Changer le plan en test" : "Plan gere par le proprietaire"}
+          </p>
           <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
             {(["free", "starter", "pro", "elite"] as PlanKey[]).map((plan) => (
               <button
                 key={plan}
                 type="button"
+                disabled={!user.isAdmin && !isDemoMode()}
                 onClick={() => changeDemoPlan(plan)}
                 className={`rounded-md border px-3 py-2 text-sm font-bold transition ${
                   currentPlan === plan
                     ? "border-accent bg-accent text-ink"
                     : "border-white/10 bg-white/5 text-white hover:bg-white/10"
-                }`}
+                } ${!user.isAdmin && !isDemoMode() ? "cursor-not-allowed opacity-50" : ""}`}
               >
                 {plans[plan].name}
               </button>
@@ -329,6 +374,14 @@ export function ProfileEditor() {
         <Save size={17} />
         Sauvegarder
       </Button>
+      <button
+        type="button"
+        onClick={signOut}
+        className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 bg-white/5 px-4 py-3 text-sm font-bold text-white transition hover:bg-white/10"
+      >
+        <LogOut size={17} />
+        Se deconnecter
+      </button>
     </form>
   );
 }
