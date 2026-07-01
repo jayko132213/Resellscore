@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowUp, Crown, KeyRound, LogOut, Menu, ShieldCheck, Star, UserCircle, X } from "lucide-react";
+import { ArrowUp, Crown, KeyRound, LogOut, MoreHorizontal, ShieldCheck, Star, UserCircle, X } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { normalizePlan, type PlanKey } from "@/lib/plans";
 
@@ -167,15 +167,15 @@ export function AuthNav({ serverSignedIn = false }: { serverSignedIn?: boolean }
       <button
         type="button"
         onClick={() => setMenuOpen((value) => !value)}
-        className="inline-flex h-10 items-center gap-2 rounded-md border border-white/15 bg-white/5 px-3 font-semibold text-white hover:bg-white/10 xl:hidden"
+        className="inline-grid h-11 w-11 place-items-center rounded-full border border-white/15 bg-white/5 text-white shadow-[0_0_18px_rgba(255,255,255,0.05)] hover:bg-white/10 xl:hidden"
         aria-label={menuOpen ? "Fermer le menu" : "Ouvrir le menu"}
         aria-expanded={menuOpen}
       >
-        {menuOpen ? <X size={18} /> : <Menu size={18} />}
-        <span className="hidden min-[390px]:inline">Menu</span>
+        {menuOpen ? <X size={19} /> : <MoreHorizontal size={22} />}
       </button>
       {menuOpen && (
-        <div className="absolute right-0 top-12 z-50 grid w-[min(92vw,360px)] gap-2 rounded-lg border border-white/10 bg-ink p-3 shadow-glow xl:hidden">
+        <div className="absolute right-0 top-[52px] z-50 grid w-[min(92vw,360px)] gap-2 rounded-lg border border-white/10 bg-ink p-3 shadow-glow xl:hidden">
+          <p className="px-2 pb-1 text-xs font-bold uppercase tracking-wide text-muted">Navigation</p>
           {mainLinks.map((item) => (
             <Link
               key={item.href}
@@ -204,6 +204,7 @@ export function AuthNav({ serverSignedIn = false }: { serverSignedIn?: boolean }
               <KeyRound size={16} />
             </Link>
           )}
+          <div className="my-1 h-px bg-white/10" />
           {signedIn && (
             <Link
               href="/profile"

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { ArrowUp, Crown, Lock, Search, ShieldCheck, Sparkles, TrendingUp } from "lucide-react";
+import { ArrowUp, Crown, Lock, Search, ShieldCheck, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { normalizePlan } from "@/lib/plans";
 
@@ -291,15 +291,15 @@ export function WeeklyOpportunities() {
 
   return (
     <section className="mt-8">
-      <div className="rounded-lg border border-white/10 bg-panel p-4 shadow-glow">
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-4">
+      <div className="rounded-lg border border-white/10 bg-panel p-5 shadow-glow">
+        <div className="mb-5 flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-5">
           <div>
             <p className="flex items-center gap-2 text-sm font-bold text-white">
               <ArrowUp size={16} className="text-accent" />
-              Tendances en hausse
+              Radar revente
             </p>
-            <p className="mt-1 text-xs text-muted">
-              Version zero euro : pas de fausses annonces. Ici tu as les familles de produits a chercher, le budget cible, les verifs et l'angle de revente.
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-muted">
+              Des pistes concretes a chercher sur Vinted : budget max, prix de revente vise, signaux a verifier et angle d'annonce. Pas de fausses annonces inventees.
             </p>
           </div>
           <span className="inline-flex items-center gap-2 rounded-full border border-accent/25 bg-accent/10 px-3 py-1 text-xs font-bold text-accent">
@@ -342,75 +342,69 @@ export function WeeklyOpportunities() {
         </div>
       </div>
 
-      <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+      <div className="mt-6 grid gap-4">
         {sorted.map((item) => (
-          <article key={item.id} className="flex flex-col rounded-lg border border-white/10 bg-panel p-5 shadow-glow">
-            <div className="flex items-start justify-between gap-4">
+          <article key={item.id} className="rounded-lg border border-white/10 bg-panel p-5 shadow-glow">
+            <div className="grid gap-5 lg:grid-cols-[1.15fr_0.85fr]">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-accent">{item.category}</p>
-                <h2 className="mt-2 text-xl font-bold leading-snug">{item.title}</h2>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="rounded-full border border-accent/25 bg-accent/10 px-3 py-1 text-xs font-black uppercase text-accent">{item.category}</span>
+                  <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs font-bold text-slate-200">{item.season}</span>
+                </div>
+                <h2 className="mt-3 text-2xl font-bold leading-tight">{item.title}</h2>
+                <p className="mt-3 text-sm leading-6 text-slate-300">{item.whyNow}</p>
+                <p className="mt-2 text-sm leading-6 text-muted">{item.demand}</p>
               </div>
-              <span className="inline-flex items-center gap-1 rounded-full bg-accent px-3 py-1 text-xs font-black text-ink">
-                <ArrowUp size={14} />
-                En hausse
-              </span>
-            </div>
 
-            <div className="mt-5 grid gap-2 text-sm">
-              <Row label="Budget achat" value={item.budget} />
-              <Row label="Prix de revente" value={item.resale} strong />
-              <Row label="Saison" value={item.season} />
-            </div>
-
-            <div className="mt-4 rounded-md border border-accent/20 bg-accent/[0.06] p-3">
-              <p className="flex items-center gap-2 text-sm font-bold text-accent">
-                <TrendingUp size={16} />
-                Pourquoi c'est interessant
-              </p>
-              <p className="mt-2 text-sm leading-6 text-slate-200">{item.whyNow}</p>
-              <p className="mt-2 text-sm leading-6 text-muted">{item.demand}</p>
-            </div>
-
-            <div className="mt-4">
-              <p className="flex items-center gap-2 text-sm font-bold text-white">
-                <Sparkles size={16} className="text-accent" />
-                Recherches a faire
-              </p>
-              <div className="mt-2 flex flex-wrap gap-2">
-                {item.searchIdeas.map((idea) => (
-                  <span key={idea} className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-semibold text-slate-200">
-                    {idea}
-                  </span>
-                ))}
+              <div className="grid gap-2 text-sm">
+                <Row label="Payer max" value={`${item.buyMax} EUR`} strong />
+                <Row label="Zone achat" value={item.budget} />
+                <Row label="Revente visee" value={item.resale} strong />
               </div>
             </div>
 
-            <div className="mt-4">
-              <p className="flex items-center gap-2 text-sm font-bold text-white">
-                <ShieldCheck size={16} className="text-accent" />
-                A verifier avant achat
-              </p>
-              <ul className="mt-2 space-y-1 text-sm leading-6 text-muted">
-                {item.checks.map((check) => (
-                  <li key={check}>- {check}</li>
-                ))}
-              </ul>
+            <div className="mt-5 grid gap-4 lg:grid-cols-3">
+              <div className="rounded-md border border-white/10 bg-white/[0.03] p-4">
+                <p className="flex items-center gap-2 text-sm font-bold text-white"><Search size={16} className="text-accent" />Recherches</p>
+                <div className="mt-3 grid gap-2">
+                  {item.searchIdeas.slice(0, 3).map((idea) => (
+                    <a key={idea} href={vintedSearchUrl(idea, item.buyMax)} target="_blank" rel="noreferrer" className="rounded-md border border-white/10 bg-black/10 px-3 py-2 text-xs font-semibold text-accent hover:border-accent/50">
+                      {idea}
+                    </a>
+                  ))}
+                </div>
+              </div>
+
+              <div className="rounded-md border border-white/10 bg-white/[0.03] p-4">
+                <p className="flex items-center gap-2 text-sm font-bold text-white"><ShieldCheck size={16} className="text-accent" />Check rapide</p>
+                <ul className="mt-3 grid gap-1 text-sm leading-6 text-muted">
+                  {item.checks.slice(0, 4).map((check) => <li key={check}>- {check}</li>)}
+                </ul>
+              </div>
+
+              <div className="rounded-md border border-accent/20 bg-accent/[0.06] p-4">
+                <p className="flex items-center gap-2 text-sm font-bold text-accent"><Sparkles size={16} />Annonce gagnante</p>
+                <p className="mt-3 text-sm leading-6 text-slate-200">{item.saleAngle}</p>
+              </div>
             </div>
 
-            <div className="mt-4 rounded-md border border-white/10 bg-white/[0.04] p-3 text-sm leading-6 text-slate-200">
-              <strong className="text-white">Angle de vente : </strong>
-              {item.saleAngle}
-            </div>
-
-            <p className="mt-3 text-sm leading-6 text-muted">
-              <strong className="text-amber-200">A eviter : </strong>
-              {item.avoid}
+            <p className="mt-4 rounded-md border border-amber-300/15 bg-amber-400/10 p-3 text-sm leading-6 text-amber-100">
+              A eviter : {item.avoid}
             </p>
           </article>
         ))}
       </div>
     </section>
   );
+}
+
+function vintedSearchUrl(query: string, maxPrice: number) {
+  const params = new URLSearchParams({
+    search_text: query,
+    price_to: String(maxPrice),
+    order: "newest_first"
+  });
+  return `https://www.vinted.fr/catalog?${params.toString()}`;
 }
 
 function Row({ label, value, strong = false }: { label: string; value: string; strong?: boolean }) {
