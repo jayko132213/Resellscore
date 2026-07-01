@@ -166,7 +166,7 @@ export function PricingTable({ signedIn = false }: { signedIn?: boolean }) {
                   ) : paypalReady ? (
                     <PaypalSubscribeButton plan={key} disabled={!signedIn} />
                   ) : (
-                    <ButtonLink href={`/paiement-manuel?plan=${key}`} variant="secondary">Payer manuellement</ButtonLink>
+                    <ButtonLink href={`/paiement-manuel?plan=${key}`} variant="secondary">Recevoir une facture PayPal</ButtonLink>
                   )}
                 </td>
               ))}
