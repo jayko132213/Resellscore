@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { type FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Mail } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
@@ -56,10 +56,29 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
     if (authError) setError(authError.message);
   }
 
-  async function onSubmit(formData: FormData) {
+  function getFriendlyAuthError(message: string) {
+    const lower = message.toLowerCase();
+    if (message === "Invalid login credentials") {
+      return "Email ou mot de passe incorrect. Si tu as cree le compte dans Supabase, remets exactement le meme mot de passe dans Auth > Users.";
+    }
+    if (lower.includes("rate limit") || lower.includes("email rate")) {
+      return "Supabase bloque les emails quelques minutes. Cree le compte depuis Supabase avec Auto Confirm, ou attends un peu avant de reessayer.";
+    }
+    if (lower.includes("already registered") || lower.includes("already been registered")) {
+      return "Ce compte existe deja. Va sur Connexion au lieu de Creer un compte.";
+    }
+    if (lower.includes("email not confirmed")) {
+      return "Le compte existe mais l'email n'est pas confirme. Dans Supabase > Auth > Users, ouvre le compte et confirme-le.";
+    }
+    return message;
+  }
+
+  async function onSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
     setLoading(true);
     setError("");
 
+    const formData = new FormData(event.currentTarget);
     const email = String(formData.get("email"));
     const password = String(formData.get("password"));
     const pseudo = String(formData.get("pseudo") || "");
@@ -88,25 +107,35 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
       }
     }
 
-    const action = mode === "login"
-      ? supabase.auth.signInWithPassword({ email, password })
-      : supabase.auth.signUp({ email, password, options: { data: { pseudo } } });
-    const { error: authError } = await action;
-    setLoading(false);
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanPseudo = pseudo.trim();
+    const authResponse = mode === "login"
+      ? await supabase.auth.signInWithPassword({ email: cleanEmail, password })
+      : await supabase.auth.signUp({ email: cleanEmail, password, options: { data: { pseudo: cleanPseudo } } });
+    const { data, error: authError } = authResponse;
 
     if (authError) {
-      setError(authError.message === "Invalid login credentials" ? "Email ou mot de passe incorrect." : authError.message);
+      setLoading(false);
+      setError(getFriendlyAuthError(authError.message));
       return;
     }
 
-    if (mode === "signup" && pseudo.trim()) {
+    if (mode === "signup" && !data.session) {
+      setLoading(false);
+      setError("Compte cree, mais Supabase demande encore une confirmation email. Dans Supabase > Auth > Users, mets Auto Confirm ou desactive Confirm email pour les tests.");
+      return;
+    }
+
+    if (mode === "signup" && cleanPseudo) {
       await fetch("/api/profile", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pseudo })
+        body: JSON.stringify({ pseudo: cleanPseudo })
       }).catch(() => {});
     }
 
+    await supabase.auth.getSession();
+    setLoading(false);
     router.push(mode === "signup" ? "/analyze" : "/dashboard");
     router.refresh();
   }
@@ -129,7 +158,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
         <span className="h-px flex-1 bg-white/10" />
       </div>
 
-      <form action={onSubmit} className="grid gap-4">
+      <form onSubmit={onSubmit} className="grid gap-4">
         {mode === "signup" && (
           <div>
             <label className="text-sm text-muted">Pseudo</label>
