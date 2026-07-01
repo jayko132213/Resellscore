@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { Camera, Check, Clipboard, Euro, ImagePlus, Loader2, PackageCheck, Sparkles, Upload, Wand2 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Camera, Check, Clipboard, Euro, ImagePlus, Loader2, PackageCheck, Sparkles, Upload, Wand2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn, euros } from "@/lib/utils";
 
@@ -134,6 +134,17 @@ export function SaleListingWorkflow() {
 
   const previews = useMemo(() => photos.map((file) => ({ name: file.name, url: URL.createObjectURL(file) })), [photos]);
 
+  useEffect(() => {
+    return () => {
+      previews.forEach((photo) => URL.revokeObjectURL(photo.url));
+    };
+  }, [previews]);
+
+  function removePhoto(indexToRemove: number) {
+    setPhotos((current) => current.filter((_, index) => index !== indexToRemove));
+    setPlan(null);
+  }
+
   async function generate() {
     setLoading(true);
     setCopied(false);
@@ -178,8 +189,17 @@ export function SaleListingWorkflow() {
         {previews.length > 0 && (
           <div className="grid grid-cols-3 gap-3">
             {previews.slice(0, 6).map((photo, index) => (
-              <div key={`${photo.name}-${index}`} className="aspect-square overflow-hidden rounded-md border border-white/10 bg-white/[0.04]">
+              <div key={`${photo.name}-${index}`} className="relative aspect-square overflow-hidden rounded-md border border-white/10 bg-white/[0.04]">
                 <img src={photo.url} alt="" className="h-full w-full object-cover" />
+                <button
+                  type="button"
+                  onClick={() => removePhoto(index)}
+                  className="absolute right-2 top-2 grid h-8 w-8 place-items-center rounded-full border border-white/20 bg-black/70 text-white shadow-lg transition hover:bg-rose-500"
+                  aria-label="Enlever cette photo"
+                  title="Enlever cette photo"
+                >
+                  <X size={16} />
+                </button>
               </div>
             ))}
           </div>
