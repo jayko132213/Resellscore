@@ -20,7 +20,7 @@ export default function HomePage() {
             <h1 className="max-w-3xl text-5xl font-bold leading-tight md:text-7xl">ResellScore</h1>
             <p className="mt-5 max-w-2xl text-xl leading-8 text-slate-300">Analyse une annonce Vinted en quelques secondes et découvre si elle vaut le coup.</p>
             <div className="mt-8 flex flex-wrap gap-3">
-              <ButtonLink href="/signup">Analyser une annonce</ButtonLink>
+              <ButtonLink href="/analyze">Analyser une annonce</ButtonLink>
               <ButtonLink href="/pricing" variant="secondary">Voir les tarifs</ButtonLink>
             </div>
           </div>
