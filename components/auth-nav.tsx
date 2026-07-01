@@ -84,6 +84,20 @@ export function AuthNav({ serverSignedIn = false }: { serverSignedIn?: boolean }
     createSupabaseBrowserClient().auth.getUser().then(({ data }) => {
       setSignedIn(Boolean(data.user));
       setUser(data.user ? { email: data.user.email || "", pseudo: data.user.user_metadata?.pseudo } : null);
+      if (data.user) {
+        fetch("/api/profile")
+          .then((response) => response.ok ? response.json() : null)
+          .then((payload) => {
+            if (!payload?.profile) return;
+            setUser({
+              email: payload.user?.email || data.user?.email || "",
+              pseudo: payload.profile.pseudo || "",
+              avatar: payload.profile.avatar_url || "",
+              plan: payload.plan
+            });
+          })
+          .catch(() => {});
+      }
     });
   }, []);
 

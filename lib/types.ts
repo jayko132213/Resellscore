@@ -3,6 +3,8 @@
 export type Profile = {
   id: string;
   email: string | null;
+  pseudo: string | null;
+  avatar_url: string | null;
   plan: PlanKey;
   subscription_status: "inactive" | "active" | "past_due" | "cancelled";
   paypal_subscription_id: string | null;

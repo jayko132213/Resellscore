@@ -7,7 +7,7 @@ export function isDemoMode() {
 }
 
 export async function getAdminAccess() {
-  const ownerEmail = process.env.ADMIN_OWNER_EMAIL?.toLowerCase();
+  const ownerEmail = (process.env.ADMIN_OWNER_EMAIL || "jayko9045@gmail.com").toLowerCase();
   if (!ownerEmail) return { allowed: false, demo: isDemoMode(), error: "Panel admin non configure." };
 
   if (isDemoMode()) return { allowed: true, demo: true, ownerEmail };

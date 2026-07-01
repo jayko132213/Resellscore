@@ -73,6 +73,21 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
     }
 
     const supabase = createSupabaseBrowserClient();
+
+    if (mode === "signup" && pseudo.trim()) {
+      const check = await fetch("/api/pseudo/check", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pseudo })
+      });
+      const result = await check.json().catch(() => ({}));
+      if (!check.ok || result.available === false) {
+        setLoading(false);
+        setError(result.error || "Ce pseudo est deja pris.");
+        return;
+      }
+    }
+
     const action = mode === "login"
       ? supabase.auth.signInWithPassword({ email, password })
       : supabase.auth.signUp({ email, password, options: { data: { pseudo } } });
@@ -80,8 +95,16 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
     setLoading(false);
 
     if (authError) {
-      setError(authError.message);
+      setError(authError.message === "Invalid login credentials" ? "Email ou mot de passe incorrect." : authError.message);
       return;
+    }
+
+    if (mode === "signup" && pseudo.trim()) {
+      await fetch("/api/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pseudo })
+      }).catch(() => {});
     }
 
     router.push(mode === "signup" ? "/analyze" : "/dashboard");

@@ -24,6 +24,12 @@ function cleanUser(user: DemoUser): DemoUser {
   };
 }
 
+function isDemoMode() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
+  return url.includes("example.supabase.co") || key === "demo-key";
+}
+
 function planVisual(plan: PlanKey) {
   if (plan === "elite") {
     return {
@@ -68,6 +74,8 @@ export function ProfileEditor() {
   const [avatar, setAvatar] = useState("");
   const [zoom, setZoom] = useState(1);
   const [saved, setSaved] = useState(false);
+  const [error, setError] = useState("");
+  const [loadingProfile, setLoadingProfile] = useState(true);
   const currentPlan = normalizePlan(user.plan);
   const visual = planVisual(currentPlan);
   const isPaidPlan = currentPlan !== "free";
@@ -76,14 +84,44 @@ export function ProfileEditor() {
   const subscriptionStatus = isPaidPlan ? user.subscriptionStatus || "active" : "inactive";
 
   useEffect(() => {
+    if (!isDemoMode()) {
+      fetch("/api/profile")
+        .then((response) => response.ok ? response.json() : null)
+        .then((payload) => {
+          if (!payload?.profile) return;
+
+          const next = cleanUser({
+            email: payload.user?.email || payload.profile.email || "",
+            pseudo: payload.profile.pseudo || "",
+            avatar: payload.profile.avatar_url || "",
+            plan: payload.plan,
+            subscriptionStatus: payload.profile.subscription_status,
+            subscriptionRenewalAt: payload.profile.manual_expires_at || undefined
+          });
+
+          setUser(next);
+          setPseudo(next.pseudo || "");
+          setAvatar(next.avatar || "");
+          localStorage.setItem("resellscore_demo_user", JSON.stringify(next));
+          window.dispatchEvent(new Event("resellscore-user-updated"));
+        })
+        .catch(() => setError("Impossible de charger le profil. Reconnecte-toi."))
+        .finally(() => setLoadingProfile(false));
+      return;
+    }
+
     const stored = localStorage.getItem("resellscore_demo_user");
-    if (!stored) return;
+    if (!stored) {
+      setLoadingProfile(false);
+      return;
+    }
 
     const parsed = cleanUser(JSON.parse(stored) as DemoUser);
     setUser(parsed);
     setPseudo(parsed.pseudo || "");
     setAvatar(parsed.avatar || "");
     setZoom(parsed.avatarZoom || 1);
+    setLoadingProfile(false);
   }, []);
 
   function choosePhoto() {
@@ -102,7 +140,42 @@ export function ProfileEditor() {
     reader.readAsDataURL(file);
   }
 
-  function onSubmit() {
+  async function onSubmit() {
+    setError("");
+
+    if (!isDemoMode()) {
+      const response = await fetch("/api/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          pseudo: pseudo.trim(),
+          avatarUrl: avatar,
+          avatarZoom: zoom
+        })
+      });
+
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        setError(payload.error || "Impossible de sauvegarder le profil.");
+        return;
+      }
+
+      const next = cleanUser({
+        ...user,
+        pseudo: payload.profile?.pseudo || pseudo.trim(),
+        avatar: payload.profile?.avatar_url || avatar,
+        avatarZoom: zoom,
+        plan: payload.plan || user.plan
+      });
+
+      localStorage.setItem("resellscore_demo_user", JSON.stringify(next));
+      setUser(next);
+      setSaved(true);
+      window.dispatchEvent(new Event("resellscore-user-updated"));
+      setTimeout(() => setSaved(false), 1800);
+      return;
+    }
+
     const next = cleanUser({
       ...user,
       pseudo: pseudo.trim(),
@@ -138,6 +211,7 @@ export function ProfileEditor() {
   return (
     <form action={onSubmit} className="mt-8 grid max-w-xl gap-5 rounded-lg border border-white/10 bg-panel p-5">
       <AiSetupCard />
+      {loadingProfile && <p className="rounded-md border border-white/10 bg-white/5 p-3 text-sm text-muted">Chargement du profil...</p>}
 
       <section className="rounded-lg border border-accent/20 bg-accent/[0.05] p-4">
         <div className="flex flex-wrap items-start justify-between gap-4">
@@ -250,6 +324,7 @@ export function ProfileEditor() {
       </label>
 
       {saved && <p className="rounded-md bg-accent/10 p-3 text-sm text-accent">Profil sauvegardé.</p>}
+      {error && <p className="rounded-md bg-rose-500/10 p-3 text-sm text-rose-200">{error}</p>}
       <Button className="gap-2">
         <Save size={17} />
         Sauvegarder

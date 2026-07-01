@@ -54,6 +54,9 @@ create table public.subscriptions (
 create index analyses_user_created_idx on public.analyses(user_id, created_at desc);
 create index usage_logs_user_created_idx on public.usage_logs(user_id, created_at desc);
 create index subscriptions_user_idx on public.subscriptions(user_id);
+create unique index profiles_pseudo_unique_idx
+on public.profiles (lower(trim(pseudo)))
+where pseudo is not null and length(trim(pseudo)) > 0;
 
 create or replace function public.set_updated_at()
 returns trigger
@@ -80,8 +83,9 @@ security definer
 set search_path = public
 as $$
 begin
-  insert into public.profiles (id, email)
-  values (new.id, new.email);
+  insert into public.profiles (id, email, pseudo)
+  values (new.id, new.email, nullif(trim(new.raw_user_meta_data->>'pseudo'), ''))
+  on conflict (id) do nothing;
   return new;
 end;
 $$;
@@ -98,6 +102,11 @@ alter table public.subscriptions enable row level security;
 create policy "profiles_select_own"
 on public.profiles for select
 using (auth.uid() = id);
+
+create policy "profiles_update_own"
+on public.profiles for update
+using (auth.uid() = id)
+with check (auth.uid() = id);
 
 create policy "analyses_select_own"
 on public.analyses for select
