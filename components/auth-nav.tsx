@@ -129,11 +129,11 @@ export function AuthNav({ serverSignedIn = false }: { serverSignedIn?: boolean }
 
   return (
     <div className="relative flex items-center gap-2 sm:gap-3">
-      <div className="hidden items-center gap-3 lg:flex">
-      <Link href={signedIn ? "/analyze" : "/signup"} className="rounded-md bg-accent px-4 py-2 font-semibold text-ink shadow-[0_0_24px_rgba(74,222,128,0.18)]">
+      <div className="hidden items-center gap-2 md:flex xl:gap-3">
+      <Link href={signedIn ? "/analyze" : "/signup"} className="rounded-md bg-accent px-3 py-2 font-semibold text-ink shadow-[0_0_24px_rgba(74,222,128,0.18)] xl:px-4">
         Analyser
       </Link>
-      <Link href="/opportunities" className="rounded-md border border-accent/25 px-4 py-2 font-medium text-accent hover:bg-accent/10">
+      <Link href="/opportunities" className="rounded-md border border-accent/25 px-3 py-2 font-medium text-accent hover:bg-accent/10 xl:px-4">
         <span className="inline-flex items-center gap-2">
           Tendances
           <span className="inline-flex items-center gap-1 rounded-full bg-accent px-2 py-0.5 text-[10px] font-black uppercase text-ink">
@@ -142,7 +142,7 @@ export function AuthNav({ serverSignedIn = false }: { serverSignedIn?: boolean }
           </span>
         </span>
       </Link>
-      <Link href="/pre-achat" className="rounded-md border border-white/15 px-4 py-2 font-medium text-white hover:bg-white/10">
+      <Link href="/pre-achat" className="rounded-md border border-white/15 px-3 py-2 font-medium text-white hover:bg-white/10 xl:px-4">
         <span className="inline-flex items-center gap-2">
           Pré-achat
           <span className="inline-flex items-center gap-1 rounded-full border border-amber-300/35 bg-amber-400/15 px-2 py-0.5 text-[10px] font-black uppercase text-amber-200">
@@ -151,7 +151,7 @@ export function AuthNav({ serverSignedIn = false }: { serverSignedIn?: boolean }
           </span>
         </span>
       </Link>
-      <Link href="/vente" className="rounded-md border border-white/15 px-4 py-2 font-medium text-white hover:bg-white/10">
+      <Link href="/vente" className="rounded-md border border-white/15 px-3 py-2 font-medium text-white hover:bg-white/10 xl:px-4">
         <span className="inline-flex items-center gap-2">
           Vente
           <span className="inline-flex items-center gap-1 rounded-full border border-sky-300/35 bg-sky-400/15 px-2 py-0.5 text-[10px] font-black uppercase text-sky-200">
@@ -160,14 +160,14 @@ export function AuthNav({ serverSignedIn = false }: { serverSignedIn?: boolean }
           </span>
         </span>
       </Link>
-      <Link href="/pricing" className="rounded-md border border-white/15 px-4 py-2 font-medium text-white hover:bg-white/10">
+      <Link href="/pricing" className="rounded-md border border-white/15 px-3 py-2 font-medium text-white hover:bg-white/10 xl:px-4">
         Tarifs
       </Link>
       </div>
       <button
         type="button"
         onClick={() => setMenuOpen((value) => !value)}
-        className="inline-flex h-10 items-center gap-2 rounded-md border border-white/15 bg-white/5 px-3 font-semibold text-white hover:bg-white/10 lg:hidden"
+        className="inline-flex h-10 items-center gap-2 rounded-md border border-white/15 bg-white/5 px-3 font-semibold text-white hover:bg-white/10 md:hidden"
         aria-label={menuOpen ? "Fermer le menu" : "Ouvrir le menu"}
         aria-expanded={menuOpen}
       >
@@ -175,7 +175,7 @@ export function AuthNav({ serverSignedIn = false }: { serverSignedIn?: boolean }
         <span>Menu</span>
       </button>
       {menuOpen && (
-        <div className="absolute right-0 top-12 z-50 grid w-[min(92vw,360px)] gap-2 rounded-lg border border-white/10 bg-ink p-3 shadow-glow lg:hidden">
+        <div className="absolute right-0 top-12 z-50 grid w-[min(92vw,360px)] gap-2 rounded-lg border border-white/10 bg-ink p-3 shadow-glow md:hidden">
           {mainLinks.map((item) => (
             <Link
               key={item.href}
@@ -238,7 +238,7 @@ export function AuthNav({ serverSignedIn = false }: { serverSignedIn?: boolean }
       {signedIn ? (
         <>
           {user?.isAdmin && (
-            <Link href="/admin-command" className="hidden items-center gap-2 rounded-md border border-accent/30 bg-accent/10 px-3 py-2 font-bold text-accent hover:bg-accent/15 lg:inline-flex">
+            <Link href="/admin-command" className="hidden items-center gap-2 rounded-md border border-accent/30 bg-accent/10 px-3 py-2 font-bold text-accent hover:bg-accent/15 md:inline-flex">
               <KeyRound size={16} />
               Admin
             </Link>

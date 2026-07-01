@@ -26,7 +26,7 @@ export async function Header() {
           <AuthNav serverSignedIn={signedIn} />
         </nav>
       </div>
-      <nav className="border-t border-white/10 lg:hidden" aria-label="Navigation mobile">
+      <nav className="border-t border-white/10 md:hidden" aria-label="Navigation mobile">
         <div className="shell flex gap-2 overflow-x-auto py-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <MobileLink href={signedIn ? "/analyze" : "/signup"} label="Analyser" active />
           <MobileLink href="/opportunities" label="Tendances" badge="Elite" icon={<ArrowUp size={11} />} />
