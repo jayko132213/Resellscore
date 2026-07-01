@@ -1,7 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { Camera, CreditCard, Crown, LogOut, Save, ShieldCheck, Star, Upload } from "lucide-react";
+import { Camera, CreditCard, Crown, KeyRound, LogOut, Save, ShieldCheck, Star, Upload } from "lucide-react";
 import { Button } from "./ui/button";
 import { plans, normalizePlan, type PlanKey } from "@/lib/plans";
 import { AiSetupCard } from "./ai-setup-card";
@@ -269,6 +270,13 @@ export function ProfileEditor() {
             {subscriptionStatus === "active" ? "Actif" : "Gratuit"}
           </span>
         </div>
+
+        {user.isAdmin && (
+          <Link href="/admin-command" className="mt-4 inline-flex items-center gap-2 rounded-md border border-accent/30 bg-accent px-4 py-2 text-sm font-black text-ink transition hover:bg-accent/90">
+            <KeyRound size={16} />
+            Ouvrir le panel admin
+          </Link>
+        )}
 
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
           <SubscriptionMetric label="Jours restants" value={isPaidPlan ? `${daysRemaining || 30} jours` : "Aucun abonnement"} />

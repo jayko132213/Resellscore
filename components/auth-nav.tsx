@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowUp, Crown, LogOut, ShieldCheck, Star, UserCircle } from "lucide-react";
+import { ArrowUp, Crown, KeyRound, LogOut, ShieldCheck, Star, UserCircle } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { normalizePlan, type PlanKey } from "@/lib/plans";
 
@@ -12,6 +12,7 @@ type DemoUser = {
   avatar?: string;
   avatarZoom?: number;
   plan?: PlanKey;
+  isAdmin?: boolean;
 };
 
 function isDemoMode() {
@@ -91,6 +92,7 @@ export function AuthNav({ serverSignedIn = false }: { serverSignedIn?: boolean }
             if (!payload?.profile) return;
             setUser({
               email: payload.user?.email || data.user?.email || "",
+              isAdmin: Boolean(payload.user?.isAdmin),
               pseudo: payload.profile.pseudo || "",
               avatar: payload.profile.avatar_url || "",
               plan: payload.plan
@@ -154,6 +156,12 @@ export function AuthNav({ serverSignedIn = false }: { serverSignedIn?: boolean }
       </Link>
       {signedIn ? (
         <>
+          {user?.isAdmin && (
+            <Link href="/admin-command" className="hidden items-center gap-2 rounded-md border border-accent/30 bg-accent/10 px-3 py-2 font-bold text-accent hover:bg-accent/15 sm:inline-flex">
+              <KeyRound size={16} />
+              Admin
+            </Link>
+          )}
           <Link href="/profile" className="flex min-h-10 items-center gap-2 rounded-md border border-white/15 bg-white/10 px-3 py-2 font-medium text-white hover:bg-white/15" aria-label="Profil">
             {user?.avatar ? (
               <span className={`relative h-8 w-8 overflow-visible rounded-full border-2 ${badge.ring}`}>
