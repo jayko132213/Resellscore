@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowUp, Crown, KeyRound, LogOut, ShieldCheck, Star, UserCircle } from "lucide-react";
+import { ArrowUp, Crown, KeyRound, LogOut, Menu, ShieldCheck, Star, UserCircle, X } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { normalizePlan, type PlanKey } from "@/lib/plans";
 
@@ -60,6 +60,7 @@ function planBadge(plan: PlanKey) {
 export function AuthNav({ serverSignedIn = false }: { serverSignedIn?: boolean }) {
   const [user, setUser] = useState<DemoUser | null>(null);
   const [signedIn, setSignedIn] = useState(serverSignedIn);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
     function loadDemoUser() {
@@ -106,6 +107,13 @@ export function AuthNav({ serverSignedIn = false }: { serverSignedIn?: boolean }
   const displayName = user?.pseudo?.trim() || "";
   const activePlan = normalizePlan(user?.plan);
   const badge = planBadge(activePlan);
+  const mainLinks = [
+    { href: signedIn ? "/analyze" : "/signup", label: "Analyser", level: "", icon: null, primary: true },
+    { href: "/opportunities", label: "Tendances", level: "Elite", icon: <ArrowUp size={11} /> },
+    { href: "/pre-achat", label: "Pré-achat", level: "Starter+", icon: <Star size={11} /> },
+    { href: "/vente", label: "Vente", level: "Pro+", icon: <ShieldCheck size={11} /> },
+    { href: "/pricing", label: "Tarifs", level: "", icon: null }
+  ];
 
   async function signOut() {
     if (isDemoMode()) {
@@ -120,11 +128,12 @@ export function AuthNav({ serverSignedIn = false }: { serverSignedIn?: boolean }
   }
 
   return (
-    <div className="flex items-center gap-3">
+    <div className="relative flex items-center gap-2 sm:gap-3">
+      <div className="hidden items-center gap-3 lg:flex">
       <Link href={signedIn ? "/analyze" : "/signup"} className="rounded-md bg-accent px-4 py-2 font-semibold text-ink shadow-[0_0_24px_rgba(74,222,128,0.18)]">
         Analyser
       </Link>
-      <Link href="/opportunities" className="hidden rounded-md border border-accent/25 px-4 py-2 font-medium text-accent hover:bg-accent/10 md:inline-flex">
+      <Link href="/opportunities" className="rounded-md border border-accent/25 px-4 py-2 font-medium text-accent hover:bg-accent/10">
         <span className="inline-flex items-center gap-2">
           Tendances
           <span className="inline-flex items-center gap-1 rounded-full bg-accent px-2 py-0.5 text-[10px] font-black uppercase text-ink">
@@ -133,7 +142,7 @@ export function AuthNav({ serverSignedIn = false }: { serverSignedIn?: boolean }
           </span>
         </span>
       </Link>
-      <Link href="/pre-achat" className="hidden rounded-md border border-white/15 px-4 py-2 font-medium text-white hover:bg-white/10 md:inline-flex">
+      <Link href="/pre-achat" className="rounded-md border border-white/15 px-4 py-2 font-medium text-white hover:bg-white/10">
         <span className="inline-flex items-center gap-2">
           Pré-achat
           <span className="inline-flex items-center gap-1 rounded-full border border-amber-300/35 bg-amber-400/15 px-2 py-0.5 text-[10px] font-black uppercase text-amber-200">
@@ -142,7 +151,7 @@ export function AuthNav({ serverSignedIn = false }: { serverSignedIn?: boolean }
           </span>
         </span>
       </Link>
-      <Link href="/vente" className="hidden rounded-md border border-white/15 px-4 py-2 font-medium text-white hover:bg-white/10 md:inline-flex">
+      <Link href="/vente" className="rounded-md border border-white/15 px-4 py-2 font-medium text-white hover:bg-white/10">
         <span className="inline-flex items-center gap-2">
           Vente
           <span className="inline-flex items-center gap-1 rounded-full border border-sky-300/35 bg-sky-400/15 px-2 py-0.5 text-[10px] font-black uppercase text-sky-200">
@@ -154,10 +163,61 @@ export function AuthNav({ serverSignedIn = false }: { serverSignedIn?: boolean }
       <Link href="/pricing" className="rounded-md border border-white/15 px-4 py-2 font-medium text-white hover:bg-white/10">
         Tarifs
       </Link>
+      </div>
+      <button
+        type="button"
+        onClick={() => setMenuOpen((value) => !value)}
+        className="inline-grid h-10 w-10 place-items-center rounded-md border border-white/15 bg-white/5 text-white hover:bg-white/10 lg:hidden"
+        aria-label={menuOpen ? "Fermer le menu" : "Ouvrir le menu"}
+        aria-expanded={menuOpen}
+      >
+        {menuOpen ? <X size={18} /> : <Menu size={18} />}
+      </button>
+      {menuOpen && (
+        <div className="absolute right-0 top-12 z-50 grid w-[min(92vw,360px)] gap-2 rounded-lg border border-white/10 bg-ink p-3 shadow-glow lg:hidden">
+          {mainLinks.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              onClick={() => setMenuOpen(false)}
+              className={`flex min-h-12 items-center justify-between gap-3 rounded-md px-4 py-3 font-semibold ${
+                item.primary ? "bg-accent text-ink" : "border border-white/10 bg-white/[0.04] text-white"
+              }`}
+            >
+              <span>{item.label}</span>
+              {item.level && (
+                <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-white/15 bg-white/10 px-2 py-1 text-[10px] font-black uppercase">
+                  {item.icon}
+                  {item.level}
+                </span>
+              )}
+            </Link>
+          ))}
+          {user?.isAdmin && (
+            <Link
+              href="/admin-command"
+              onClick={() => setMenuOpen(false)}
+              className="flex min-h-12 items-center justify-between gap-3 rounded-md border border-accent/30 bg-accent/10 px-4 py-3 font-bold text-accent"
+            >
+              <span>Admin</span>
+              <KeyRound size={16} />
+            </Link>
+          )}
+          {!signedIn && (
+            <Link
+              href="/login"
+              onClick={() => setMenuOpen(false)}
+              className="flex min-h-12 items-center justify-between rounded-md bg-white px-4 py-3 font-bold text-ink"
+            >
+              Connexion
+            </Link>
+          )}
+        </div>
+      )}
       {signedIn ? (
         <>
           {user?.isAdmin && (
-            <Link href="/admin-command" className="hidden items-center gap-2 rounded-md border border-accent/30 bg-accent/10 px-3 py-2 font-bold text-accent hover:bg-accent/15 sm:inline-flex">
+            <Link href="/admin-command" className="hidden items-center gap-2 rounded-md border border-accent/30 bg-accent/10 px-3 py-2 font-bold text-accent hover:bg-accent/15 lg:inline-flex">
               <KeyRound size={16} />
               Admin
             </Link>
