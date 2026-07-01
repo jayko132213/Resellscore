@@ -27,7 +27,7 @@ export async function Header() {
         </nav>
       </div>
       <nav className="border-t border-white/10 md:hidden" aria-label="Navigation mobile">
-        <div className="shell flex gap-2 overflow-x-auto py-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="shell grid grid-cols-2 gap-2 py-2 min-[420px]:grid-cols-3">
           <MobileLink href={signedIn ? "/analyze" : "/signup"} label="Analyser" active />
           <MobileLink href="/opportunities" label="Tendances" badge="Elite" icon={<ArrowUp size={11} />} />
           <MobileLink href="/pre-achat" label="Pré-achat" badge="Starter+" icon={<Star size={11} />} />
@@ -43,13 +43,13 @@ function MobileLink({ href, label, badge, icon, active = false }: { href: string
   return (
     <Link
       href={href}
-      className={`flex min-h-11 shrink-0 items-center gap-2 rounded-md px-3 text-sm font-bold ${
+      className={`flex min-h-11 items-center justify-center gap-2 rounded-md px-2 text-center text-sm font-bold ${
         active ? "bg-accent text-ink" : "border border-white/10 bg-white/[0.04] text-white"
       }`}
     >
-      <span>{label}</span>
+      <span className="truncate">{label}</span>
       {badge && (
-        <span className="inline-flex items-center gap-1 rounded-full border border-white/15 bg-white/10 px-2 py-0.5 text-[10px] font-black uppercase">
+        <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-white/15 bg-white/10 px-1.5 py-0.5 text-[9px] font-black uppercase">
           {icon}
           {badge}
         </span>

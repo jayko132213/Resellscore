@@ -172,7 +172,7 @@ export function AuthNav({ serverSignedIn = false }: { serverSignedIn?: boolean }
         aria-expanded={menuOpen}
       >
         {menuOpen ? <X size={18} /> : <Menu size={18} />}
-        <span>Menu</span>
+        <span className="hidden min-[390px]:inline">Menu</span>
       </button>
       {menuOpen && (
         <div className="absolute right-0 top-12 z-50 grid w-[min(92vw,360px)] gap-2 rounded-lg border border-white/10 bg-ink p-3 shadow-glow md:hidden">
@@ -243,7 +243,7 @@ export function AuthNav({ serverSignedIn = false }: { serverSignedIn?: boolean }
               Admin
             </Link>
           )}
-          <Link href="/profile" className="flex min-h-10 items-center gap-2 rounded-md border border-white/15 bg-white/10 px-3 py-2 font-medium text-white hover:bg-white/15" aria-label="Profil">
+          <Link href="/profile" className="flex min-h-10 items-center gap-2 rounded-md border border-white/15 bg-white/10 px-2 py-2 font-medium text-white hover:bg-white/15 sm:px-3" aria-label="Profil">
             {user?.avatar ? (
               <span className={`relative h-8 w-8 overflow-visible rounded-full border-2 ${badge.ring}`}>
                 {activePlan !== "free" && (
