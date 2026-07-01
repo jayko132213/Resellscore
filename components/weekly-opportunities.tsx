@@ -2,13 +2,31 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { ArrowUp, Crown, Lock, Search, ShieldCheck, Sparkles } from "lucide-react";
+import { ArrowUp, Crown, ExternalLink, Loader2, Lock, Search, ShieldCheck, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { normalizePlan } from "@/lib/plans";
 
 type SortKey = "margin" | "season" | "safe";
 type BudgetKey = "all" | "small" | "middle" | "high";
 type DemoUser = { plan?: string };
+
+type LiveOpportunity = {
+  id: string;
+  title: string;
+  category: string;
+  score: number;
+  buy: number;
+  resale: number;
+  demand: number;
+  popularity: number;
+  link: string;
+  signal: string;
+  reason: string;
+  risk: string;
+  condition: string;
+  sellerSignal: string;
+  spottedAt: string;
+};
 
 type Trend = {
   id: string;
@@ -203,6 +221,9 @@ export function WeeklyOpportunities() {
   const [budget, setBudget] = useState<BudgetKey>("all");
   const [isElite, setIsElite] = useState(false);
   const [planLoaded, setPlanLoaded] = useState(false);
+  const [liveItems, setLiveItems] = useState<LiveOpportunity[]>([]);
+  const [liveMessage, setLiveMessage] = useState("");
+  const [liveLoading, setLiveLoading] = useState(false);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -245,6 +266,33 @@ export function WeeklyOpportunities() {
       window.removeEventListener("storage", loadPlan);
     };
   }, []);
+
+  useEffect(() => {
+    if (!isElite) return;
+
+    let cancelled = false;
+    setLiveLoading(true);
+    fetch("/api/opportunities/live", { cache: "no-store" })
+      .then((response) => response.ok ? response.json() : null)
+      .then((data: { items?: LiveOpportunity[]; message?: string } | null) => {
+        if (cancelled) return;
+        setLiveItems(data?.items || []);
+        setLiveMessage(data?.message || "Scanner indisponible pour le moment.");
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setLiveItems([]);
+          setLiveMessage("Scanner live bloque pour le moment. Les tendances restent disponibles.");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLiveLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isElite]);
 
   const sorted = useMemo(() => {
     const selectedBudget = budgetFilters.find((item) => item.key === budget) || budgetFilters[0];
@@ -342,6 +390,75 @@ export function WeeklyOpportunities() {
         </div>
       </div>
 
+      <section className="mt-6 rounded-lg border border-accent/20 bg-panel p-5 shadow-glow">
+        <div className="flex flex-col gap-3 border-b border-white/10 pb-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <p className="flex items-center gap-2 text-sm font-bold text-accent">
+              {liveLoading ? <Loader2 size={16} className="animate-spin" /> : <ExternalLink size={16} />}
+              Annonces directes
+            </p>
+            <p className="mt-2 text-sm leading-6 text-muted">
+              Le scanner essaie de trouver des annonces Vinted recentes et directement cliquables. Si Vinted bloque, ResellScore affiche les tendances a chercher.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setLiveLoading(true);
+              fetch("/api/opportunities/live", { cache: "no-store" })
+                .then((response) => response.ok ? response.json() : null)
+                .then((data: { items?: LiveOpportunity[]; message?: string } | null) => {
+                  setLiveItems(data?.items || []);
+                  setLiveMessage(data?.message || "Scanner indisponible pour le moment.");
+                })
+                .catch(() => setLiveMessage("Scanner live bloque pour le moment."))
+                .finally(() => setLiveLoading(false));
+            }}
+            className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-white/15 bg-white/5 px-4 text-sm font-bold text-white hover:bg-white/10"
+          >
+            <Search size={15} />
+            Rafraichir
+          </button>
+        </div>
+
+        {liveItems.length > 0 ? (
+          <div className="mt-4 grid gap-3 lg:grid-cols-2">
+            {liveItems.slice(0, 8).map((item) => (
+              <a
+                key={item.id}
+                href={item.link}
+                target="_blank"
+                rel="noreferrer"
+                className="rounded-lg border border-white/10 bg-white/[0.03] p-4 transition hover:border-accent/60 hover:bg-white/[0.05]"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-black uppercase text-accent">{item.category}</p>
+                    <h3 className="mt-1 line-clamp-2 font-bold text-white">{item.title}</h3>
+                  </div>
+                  <span className="shrink-0 rounded-full bg-accent px-3 py-1 text-xs font-black text-ink">{item.score}/10</span>
+                </div>
+                <div className="mt-3 grid grid-cols-3 gap-2 text-xs">
+                  <Mini label="Achat est." value={`${item.buy} EUR`} />
+                  <Mini label="Revente" value={`${item.resale} EUR`} />
+                  <Mini label="Demande" value={`${item.demand}%`} />
+                </div>
+                <p className="mt-3 text-sm leading-6 text-slate-300">{item.signal} · {item.reason}</p>
+                <p className="mt-2 text-xs leading-5 text-amber-100">Risque : {item.risk}</p>
+                <p className="mt-3 inline-flex items-center gap-2 text-xs font-bold text-accent">
+                  Ouvrir l'annonce Vinted
+                  <ExternalLink size={13} />
+                </p>
+              </a>
+            ))}
+          </div>
+        ) : (
+          <div className="mt-4 rounded-md border border-white/10 bg-white/[0.03] p-4 text-sm leading-6 text-muted">
+            {liveLoading ? "Recherche des annonces Vinted en cours..." : liveMessage || "Aucune annonce directe detectee pour le moment."}
+          </div>
+        )}
+      </section>
+
       <div className="mt-6 grid gap-4">
         {sorted.map((item) => (
           <article key={item.id} className="rounded-lg border border-white/10 bg-panel p-5 shadow-glow">
@@ -412,6 +529,15 @@ function Row({ label, value, strong = false }: { label: string; value: string; s
     <div className="flex justify-between gap-4 rounded-md bg-white/[0.04] p-3">
       <span className="text-muted">{label}</span>
       <strong className={cn("text-right", strong ? "text-accent" : "text-white")}>{value}</strong>
+    </div>
+  );
+}
+
+function Mini({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-md border border-white/10 bg-black/10 p-2">
+      <p className="text-[10px] uppercase tracking-wide text-muted">{label}</p>
+      <p className="mt-1 font-black text-white">{value}</p>
     </div>
   );
 }
