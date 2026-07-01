@@ -21,6 +21,21 @@ function saveDemoUser(email: string, pseudo?: string) {
   window.dispatchEvent(new Event("resellscore-user-updated"));
 }
 
+async function syncServerSession(session?: { access_token: string; refresh_token: string } | null) {
+  if (!session?.access_token || !session.refresh_token) return false;
+
+  const response = await fetch("/auth/session", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      access_token: session.access_token,
+      refresh_token: session.refresh_token
+    })
+  });
+
+  return response.ok;
+}
+
 export function AuthForm({ mode }: { mode: "login" | "signup" }) {
   const router = useRouter();
   const [error, setError] = useState("");
@@ -142,10 +157,15 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
       }).catch(() => {});
     }
 
-    await supabase.auth.getSession();
+    const synced = await syncServerSession(data.session);
+    if (!synced) {
+      setLoading(false);
+      setError("Connexion creee, mais le site n'a pas reussi a garder la session. Recharge la page et reessaie.");
+      return;
+    }
+
     setLoading(false);
-    router.push(mode === "signup" ? "/analyze" : "/dashboard");
-    router.refresh();
+    window.location.assign(mode === "signup" ? "/analyze" : "/dashboard");
   }
 
   return (
