@@ -40,7 +40,6 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
   const router = useRouter();
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const googleEnabled = process.env.NEXT_PUBLIC_GOOGLE_AUTH_ENABLED !== "false";
   const [callbackError, setCallbackError] = useState(false);
 
   useEffect(() => {
@@ -48,11 +47,6 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
   }, []);
 
   async function signInWithGoogle() {
-    if (!googleEnabled) {
-      setError("Connexion Google desactivee dans les variables Vercel.");
-      return;
-    }
-
     setError("");
     setLoading(true);
 
@@ -170,15 +164,10 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
 
   return (
     <div className="mx-auto mt-10 grid max-w-md gap-4 rounded-lg border border-white/10 bg-panel p-6">
-      <Button type="button" variant="secondary" onClick={signInWithGoogle} disabled={loading || !googleEnabled} className="w-full gap-2">
+      <Button type="button" variant="secondary" onClick={signInWithGoogle} disabled={loading} className="w-full gap-2">
         <span className="grid h-5 w-5 place-items-center rounded-full bg-white text-xs font-bold text-ink">G</span>
         {loading ? "Connexion..." : "Continuer avec Google"}
       </Button>
-      {!googleEnabled && (
-        <p className="rounded-md border border-amber-300/20 bg-amber-400/10 p-3 text-xs leading-5 text-amber-100">
-          Google est desactive dans Vercel. Mets NEXT_PUBLIC_GOOGLE_AUTH_ENABLED a true quand le provider est configure.
-        </p>
-      )}
       {callbackError && (
         <p className="rounded-md border border-rose-300/20 bg-rose-400/10 p-3 text-xs leading-5 text-rose-100">
           Connexion Google incomplete. Verifie que Supabase a bien l'URL de redirection et que le provider Google est active.
