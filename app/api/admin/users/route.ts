@@ -44,6 +44,8 @@ export async function GET() {
           avatarUrl: "",
           plan: "elite",
           status: "active",
+          lastDevice: "mobile",
+          lastDeviceLabel: "Téléphone",
           createdAt: new Date().toISOString(),
           lastSignInAt: new Date().toISOString(),
           analysesCount: 2,
@@ -83,6 +85,8 @@ export async function GET() {
   const users = (authUsers.users || []).map((authUser) => {
     const profile = profileById.get(authUser.id);
     const userAnalyses = analysesByUser.get(authUser.id) || [];
+    const metadata = authUser.user_metadata || {};
+    const lastDevice = metadata.lastDevice === "mobile" ? "mobile" : metadata.lastDevice === "desktop" ? "desktop" : "unknown";
 
     return {
       id: authUser.id,
@@ -91,6 +95,9 @@ export async function GET() {
       avatarUrl: profile?.avatar_url || "",
       plan: profile?.plan || "free",
       status: profile?.subscription_status || "inactive",
+      lastDevice,
+      lastDeviceLabel: typeof metadata.lastDeviceLabel === "string" ? metadata.lastDeviceLabel : lastDevice === "mobile" ? "Téléphone" : lastDevice === "desktop" ? "Ordinateur" : "Inconnu",
+      lastDeviceAt: typeof metadata.lastDeviceAt === "string" ? metadata.lastDeviceAt : null,
       manualExpiresAt: profile?.manual_expires_at || null,
       createdAt: profile?.created_at || authUser.created_at,
       lastSignInAt: authUser.last_sign_in_at || null,

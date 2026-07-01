@@ -167,11 +167,12 @@ export function AuthNav({ serverSignedIn = false }: { serverSignedIn?: boolean }
       <button
         type="button"
         onClick={() => setMenuOpen((value) => !value)}
-        className="inline-grid h-10 w-10 place-items-center rounded-md border border-white/15 bg-white/5 text-white hover:bg-white/10 lg:hidden"
+        className="inline-flex h-10 items-center gap-2 rounded-md border border-white/15 bg-white/5 px-3 font-semibold text-white hover:bg-white/10 lg:hidden"
         aria-label={menuOpen ? "Fermer le menu" : "Ouvrir le menu"}
         aria-expanded={menuOpen}
       >
         {menuOpen ? <X size={18} /> : <Menu size={18} />}
+        <span>Menu</span>
       </button>
       {menuOpen && (
         <div className="absolute right-0 top-12 z-50 grid w-[min(92vw,360px)] gap-2 rounded-lg border border-white/10 bg-ink p-3 shadow-glow lg:hidden">
@@ -202,6 +203,26 @@ export function AuthNav({ serverSignedIn = false }: { serverSignedIn?: boolean }
               <span>Admin</span>
               <KeyRound size={16} />
             </Link>
+          )}
+          {signedIn && (
+            <Link
+              href="/profile"
+              onClick={() => setMenuOpen(false)}
+              className="flex min-h-12 items-center justify-between gap-3 rounded-md border border-white/10 bg-white/[0.04] px-4 py-3 font-semibold text-white"
+            >
+              <span>Profil</span>
+              <UserCircle size={17} />
+            </Link>
+          )}
+          {signedIn && (
+            <button
+              type="button"
+              onClick={signOut}
+              className="flex min-h-12 items-center justify-between gap-3 rounded-md border border-white/10 bg-white/[0.04] px-4 py-3 text-left font-semibold text-white"
+            >
+              <span>Se déconnecter</span>
+              <LogOut size={17} />
+            </button>
           )}
           {!signedIn && (
             <Link
@@ -247,7 +268,7 @@ export function AuthNav({ serverSignedIn = false }: { serverSignedIn?: boolean }
           <button
             type="button"
             onClick={signOut}
-            className="grid h-10 w-10 place-items-center rounded-md border border-white/15 bg-white/5 text-white hover:bg-white/10"
+            className="hidden h-10 w-10 place-items-center rounded-md border border-white/15 bg-white/5 text-white hover:bg-white/10 sm:grid"
             aria-label="Se deconnecter"
             title="Se deconnecter"
           >

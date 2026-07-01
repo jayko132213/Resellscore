@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
+import { SessionDeviceTracker } from "@/components/session-device-tracker";
 
 export const metadata: Metadata = {
   title: "ResellScore",
@@ -17,6 +18,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="fr">
       <body>
+        <SessionDeviceTracker />
         <Header />
         {children}
         <Footer />

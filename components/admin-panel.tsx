@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Crown, RefreshCw, Search, UserMinus, UserPlus } from "lucide-react";
+import { Crown, Monitor, RefreshCw, Search, Smartphone, UserMinus, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { PlanKey } from "@/lib/plans";
 import { euros } from "@/lib/utils";
@@ -15,6 +15,9 @@ type AdminUser = {
   avatarUrl: string;
   plan: PlanKey;
   status: string;
+  lastDevice: "mobile" | "desktop" | "unknown";
+  lastDeviceLabel: string;
+  lastDeviceAt?: string | null;
   manualExpiresAt?: string | null;
   createdAt: string;
   lastSignInAt?: string | null;
@@ -231,9 +234,14 @@ export function AdminPanel() {
                   </div>
                 </div>
 
-                <div className="grid gap-2 text-sm sm:grid-cols-4 lg:min-w-[520px]">
+                <div className="grid gap-2 text-sm sm:grid-cols-5 lg:min-w-[620px]">
                   <MiniStat label="Plan" value={user.plan} />
                   <MiniStat label="Statut" value={user.status} />
+                  <MiniStat
+                    label="Appareil"
+                    value={user.lastDeviceLabel || "Inconnu"}
+                    icon={user.lastDevice === "mobile" ? <Smartphone size={14} /> : <Monitor size={14} />}
+                  />
                   <MiniStat label="Analyses" value={`${user.analysesCount}`} />
                   <MiniStat label="Connexion" value={user.lastSignInAt ? new Date(user.lastSignInAt).toLocaleDateString("fr-FR") : "Jamais"} />
                 </div>
@@ -276,11 +284,11 @@ export function AdminPanel() {
   );
 }
 
-function MiniStat({ label, value }: { label: string; value: string }) {
+function MiniStat({ label, value, icon }: { label: string; value: string; icon?: React.ReactNode }) {
   return (
     <div className="rounded-md border border-white/10 bg-white/[0.04] p-3">
       <p className="text-xs text-muted">{label}</p>
-      <p className="mt-1 truncate font-bold text-white">{value}</p>
+      <p className="mt-1 flex items-center gap-2 truncate font-bold text-white">{icon}{value}</p>
     </div>
   );
 }
