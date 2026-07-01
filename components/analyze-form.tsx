@@ -525,14 +525,46 @@ function ManualDetails({ required = false }: { required?: boolean }) {
 }
 
 function FilePicker({ name, label, icon }: { name: string; label: string; icon: React.ReactNode }) {
+  const [files, setFiles] = useState<{ name: string; url: string }[]>([]);
+
+  useEffect(() => {
+    return () => {
+      files.forEach((file) => URL.revokeObjectURL(file.url));
+    };
+  }, [files]);
+
+  function onChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const selected = Array.from(event.target.files || []).filter((file) => file.type.startsWith("image/"));
+    setFiles((current) => {
+      current.forEach((file) => URL.revokeObjectURL(file.url));
+      return selected.map((file) => ({
+        name: file.name,
+        url: URL.createObjectURL(file)
+      }));
+    });
+  }
+
   return (
     <label className="grid gap-3 rounded-md border border-dashed border-white/15 bg-white/[0.03] p-4">
       <span className="flex items-center gap-2 text-sm font-medium text-white">{icon}{label}</span>
-      <span className="inline-flex h-11 max-w-full items-center justify-center rounded-md bg-white/10 px-4 text-sm font-semibold text-white">
-        Sélectionner un fichier
+      <span className="inline-flex h-11 max-w-full items-center justify-center rounded-md bg-white/10 px-4 text-sm font-semibold text-white transition hover:bg-white/15">
+        {files.length > 0 ? "Changer la photo" : "Sélectionner un fichier"}
       </span>
-      <input name={name} type="file" accept="image/*" multiple className="sr-only" />
-      <span className="text-xs leading-5 text-muted">Image JPG, PNG ou capture lisible. Le nom du fichier ne déborde pas dans la case.</span>
+      <input name={name} type="file" accept="image/*" multiple className="sr-only" onChange={onChange} />
+      {files.length > 0 ? (
+        <div className="grid gap-3 sm:grid-cols-2">
+          {files.map((file) => (
+            <div key={file.url} className="overflow-hidden rounded-md border border-white/10 bg-black/20">
+              <div className="aspect-[4/3] bg-black/30">
+                <img src={file.url} alt="" className="h-full w-full object-cover" />
+              </div>
+              <p className="truncate px-3 py-2 text-xs font-medium text-slate-200">{file.name}</p>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <span className="text-xs leading-5 text-muted">Image JPG, PNG ou capture lisible. Après sélection, la photo apparaît ici.</span>
+      )}
     </label>
   );
 }
