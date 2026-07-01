@@ -1,6 +1,6 @@
 "use client";
 
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Mail } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
@@ -25,11 +25,16 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
   const router = useRouter();
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const googleEnabled = process.env.NEXT_PUBLIC_GOOGLE_AUTH_ENABLED === "true";
+  const googleEnabled = process.env.NEXT_PUBLIC_GOOGLE_AUTH_ENABLED !== "false";
+  const [callbackError, setCallbackError] = useState(false);
+
+  useEffect(() => {
+    setCallbackError(new URLSearchParams(window.location.search).has("error"));
+  }, []);
 
   async function signInWithGoogle() {
     if (!googleEnabled) {
-      setError("Connexion Google pas encore active. Utilise email + mot de passe pour l'instant.");
+      setError("Connexion Google desactivee dans les variables Vercel.");
       return;
     }
 
@@ -49,15 +54,18 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
     const { error: authError } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${origin}/analyze`
+        redirectTo: `${origin}/auth/callback?next=/analyze`
       }
     });
     setLoading(false);
-    if (authError) setError(authError.message);
+    if (authError) setError(getFriendlyAuthError(authError.message));
   }
 
   function getFriendlyAuthError(message: string) {
     const lower = message.toLowerCase();
+    if (lower.includes("provider") || lower.includes("oauth")) {
+      return "Google n'est pas encore configure dans Supabase. Active le provider Google dans Supabase, puis ajoute le Client ID et le Secret Google.";
+    }
     if (message === "Invalid login credentials") {
       return "Email ou mot de passe incorrect. Si tu as cree le compte dans Supabase, remets exactement le meme mot de passe dans Auth > Users.";
     }
@@ -144,11 +152,16 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
     <div className="mx-auto mt-10 grid max-w-md gap-4 rounded-lg border border-white/10 bg-panel p-6">
       <Button type="button" variant="secondary" onClick={signInWithGoogle} disabled={loading || !googleEnabled} className="w-full gap-2">
         <span className="grid h-5 w-5 place-items-center rounded-full bg-white text-xs font-bold text-ink">G</span>
-        {googleEnabled ? "Continuer avec Google" : "Google bientot disponible"}
+        {loading ? "Connexion..." : "Continuer avec Google"}
       </Button>
       {!googleEnabled && (
         <p className="rounded-md border border-amber-300/20 bg-amber-400/10 p-3 text-xs leading-5 text-amber-100">
-          Pour l'instant, cree ton compte avec email et mot de passe. Google sera active apres configuration du provider dans Supabase.
+          Google est desactive dans Vercel. Mets NEXT_PUBLIC_GOOGLE_AUTH_ENABLED a true quand le provider est configure.
+        </p>
+      )}
+      {callbackError && (
+        <p className="rounded-md border border-rose-300/20 bg-rose-400/10 p-3 text-xs leading-5 text-rose-100">
+          Connexion Google incomplete. Verifie que Supabase a bien l'URL de redirection et que le provider Google est active.
         </p>
       )}
 
