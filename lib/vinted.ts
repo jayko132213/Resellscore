@@ -41,6 +41,17 @@ export function titleFromVintedUrl(value?: string | null) {
   }
 }
 
+function itemIdFromVintedUrl(value?: string | null) {
+  if (!value) return "";
+  try {
+    const url = new URL(value);
+    const match = url.pathname.match(/\/items\/(\d+)/);
+    return match?.[1] || "";
+  } catch {
+    return "";
+  }
+}
+
 function cleanText(value: string) {
   return value
     .replace(/<script[\s\S]*?<\/script>/gi, " ")
@@ -77,6 +88,16 @@ function extractFirstNumber(value: string) {
   if (!match) return 0;
   const price = Math.round(Number(`${match[1]}.${match[2] || "0"}`));
   return price > 0 && price <= 5000 ? price : 0;
+}
+
+function priceFromValue(value: unknown) {
+  if (typeof value === "number") return value > 0 && value <= 5000 ? Math.round(value) : 0;
+  if (typeof value === "string") return extractFirstNumber(value);
+  if (value && typeof value === "object") {
+    const object = value as Record<string, unknown>;
+    return priceFromValue(object.amount || object.value || object.price || object.price_without_discount);
+  }
+  return 0;
 }
 
 function extractPriceFromText(text: string) {
@@ -170,6 +191,122 @@ function readNestedText(value: unknown, keys: string[]): string {
   return "";
 }
 
+function readNestedPrice(value: unknown, keys: string[]): number {
+  if (!value || typeof value !== "object") return 0;
+  const object = value as Record<string, unknown>;
+  for (const key of keys) {
+    const price = priceFromValue(object[key]);
+    if (price > 0) return price;
+  }
+  return 0;
+}
+
+function cookiesFromResponse(response: Response) {
+  const headers = response.headers as Headers & { getSetCookie?: () => string[] };
+  const values = typeof headers.getSetCookie === "function"
+    ? headers.getSetCookie()
+    : response.headers.get("set-cookie")?.split(/,(?=\s*[^;,\s]+=)/) || [];
+
+  return values
+    .map((cookie) => cookie.split(";")[0]?.trim())
+    .filter(Boolean)
+    .join("; ");
+}
+
+function csrfFromHtml(html: string) {
+  return html.match(/<meta[^>]+name=["']csrf-token["'][^>]+content=["']([^"']+)["']/i)?.[1] || "";
+}
+
+function snapshotFromApiItem(vintedUrl: string, item: Record<string, unknown>, rawJson: string): VintedListingSnapshot {
+  const photos = Array.isArray(item.photos) ? item.photos : [];
+  const firstPhoto = photos[0] as Record<string, unknown> | undefined;
+  const title = readNestedText(item, ["title", "name"]);
+  const description = readNestedText(item, ["description", "description_plain", "item_description"]);
+  const brand = readNestedText(item, ["brand_title", "brand", "manufacturer"]);
+  const condition = readNestedText(item, ["status", "status_title", "condition"]);
+  const imageUrl = readNestedText(firstPhoto || {}, ["url", "full_size_url", "high_resolution_url"]);
+  const sellerPrice = readNestedPrice(item, ["price", "item_price", "total_item_price", "price_numeric"]);
+  const rawText = [
+    title,
+    description,
+    brand,
+    condition,
+    rawJson.slice(0, 2000)
+  ].filter(Boolean).join(" ");
+
+  return {
+    url: vintedUrl,
+    title,
+    description,
+    sellerPrice,
+    brand,
+    condition,
+    imageUrl,
+    rawText,
+    fetched: true
+  };
+}
+
+async function readVintedApiListing(vintedUrl: string): Promise<VintedListingSnapshot | null> {
+  const itemId = itemIdFromVintedUrl(vintedUrl);
+  if (!itemId) return null;
+
+  const origin = new URL(vintedUrl).origin;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 10000);
+
+  try {
+    const warmup = await fetch(origin, {
+      signal: controller.signal,
+      cache: "no-store",
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml",
+        "Accept-Language": "fr-FR,fr;q=0.9,en;q=0.7"
+      }
+    });
+    const warmupHtml = await warmup.text().catch(() => "");
+    const cookie = cookiesFromResponse(warmup);
+    const csrf = csrfFromHtml(warmupHtml);
+    const apiHeaders: HeadersInit = {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36",
+      "Accept": "application/json, text/plain, */*",
+      "Accept-Language": "fr-FR,fr;q=0.9,en;q=0.7",
+      "Referer": vintedUrl
+    };
+    if (cookie) apiHeaders.Cookie = cookie;
+    if (csrf) apiHeaders["X-CSRF-Token"] = csrf;
+
+    const endpoints = [
+      `${origin}/api/v2/items/${itemId}`,
+      `${origin}/api/v2/items/${itemId}/details`
+    ];
+
+    for (const endpoint of endpoints) {
+      const response = await fetch(endpoint, {
+        signal: controller.signal,
+        cache: "no-store",
+        headers: apiHeaders
+      });
+      if (!response.ok) continue;
+
+      const json = await response.json();
+      const item = (json.item || json.item_dto || json) as Record<string, unknown>;
+      const rawJson = JSON.stringify(json);
+      const snapshot = snapshotFromApiItem(vintedUrl, item, rawJson);
+      if (snapshot.title || snapshot.description || snapshot.sellerPrice > 0) {
+        return snapshot;
+      }
+    }
+
+    return null;
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 function readJsonLd(html: string) {
   const blocks = [...html.matchAll(/<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)];
   for (const block of blocks) {
@@ -214,6 +351,9 @@ function extractEmbeddedPrice(html: string) {
 
 export async function readVintedListing(vintedUrl?: string | null): Promise<VintedListingSnapshot | null> {
   if (!vintedUrl || !isVintedUrl(vintedUrl)) return null;
+
+  const apiListing = await readVintedApiListing(vintedUrl);
+  if (apiListing) return apiListing;
 
   try {
     const controller = new AbortController();
