@@ -247,7 +247,7 @@ export function AuthNav({ serverSignedIn = false }: { serverSignedIn?: boolean }
               Admin
             </Link>
           )}
-          <Link href="/profile" className="flex min-h-10 min-w-10 items-center gap-2 rounded-md border border-white/15 bg-white/10 px-1.5 py-2 font-medium text-white hover:bg-white/15 sm:px-3" aria-label="Profil">
+          <Link href="/profile" className="hidden min-h-10 min-w-10 items-center gap-2 rounded-md border border-white/15 bg-white/10 px-3 py-2 font-medium text-white hover:bg-white/15 xl:flex" aria-label="Profil">
             {user?.avatar ? (
               <span className={`relative h-8 w-8 shrink-0 overflow-visible rounded-full border-2 ${badge.ring}`}>
                 {activePlan !== "free" && (
@@ -272,7 +272,7 @@ export function AuthNav({ serverSignedIn = false }: { serverSignedIn?: boolean }
           <button
             type="button"
             onClick={signOut}
-            className="hidden h-10 w-10 place-items-center rounded-md border border-white/15 bg-white/5 text-white hover:bg-white/10 sm:grid"
+            className="hidden h-10 w-10 place-items-center rounded-md border border-white/15 bg-white/5 text-white hover:bg-white/10 xl:grid"
             aria-label="Se deconnecter"
             title="Se deconnecter"
           >
@@ -280,7 +280,7 @@ export function AuthNav({ serverSignedIn = false }: { serverSignedIn?: boolean }
           </button>
         </>
       ) : (
-        <Link href="/login" className="rounded-md bg-white px-3 py-2 font-semibold text-ink sm:px-4">
+        <Link href="/login" className="hidden rounded-md bg-white px-4 py-2 font-semibold text-ink xl:inline-flex">
           Connexion
         </Link>
       )}
