@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowUp, Crown, KeyRound, LogOut, MoreHorizontal, ShieldCheck, Star, UserCircle, X } from "lucide-react";
+import { ArrowUp, Crown, KeyRound, LogOut, MessageSquare, MoreHorizontal, Settings, ShieldCheck, Star, UserCircle, X } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { normalizePlan, type PlanKey } from "@/lib/plans";
 
@@ -162,7 +162,9 @@ export function AuthNav({ serverSignedIn = false }: { serverSignedIn?: boolean }
     { href: "/opportunities", label: "Tendances", level: "Elite", icon: <ArrowUp size={11} /> },
     { href: "/pre-achat", label: "Pre-achat", level: "Starter+", icon: <Star size={11} /> },
     { href: "/vente", label: "Vente", level: "Pro+", icon: <ShieldCheck size={11} /> },
-    { href: "/pricing", label: "Tarifs", level: "", icon: null }
+    { href: "/pricing", label: "Tarifs", level: "", icon: null },
+    { href: "/avis", label: "Avis", level: "", icon: <MessageSquare size={15} /> },
+    { href: "/parametres", label: "Paramètres", level: "", icon: <Settings size={15} /> }
   ];
 
   async function signOut() {
@@ -207,7 +209,7 @@ export function AuthNav({ serverSignedIn = false }: { serverSignedIn?: boolean }
             </button>
           </div>
           <p className="text-sm leading-5 text-muted">
-            Clique sur le bouton <span className="font-black text-accent">...</span> pour ouvrir le menu. Dedans tu as Analyser, Tarifs, Tendances, Pre-achat, Vente, Profil et Deconnexion.
+            Clique sur le bouton <span className="font-black text-accent">...</span> pour ouvrir le menu. Dedans tu as Analyser, Tarifs, Tendances, Pre-achat, Vente, Avis, Paramètres, Profil et Deconnexion.
           </p>
           <div className="mt-3 grid grid-cols-2 gap-2">
             <button
@@ -239,7 +241,10 @@ export function AuthNav({ serverSignedIn = false }: { serverSignedIn?: boolean }
                 item.primary ? "bg-accent text-ink" : "border border-white/10 bg-white/[0.04] text-white"
               }`}
             >
-              <span>{item.label}</span>
+              <span className="inline-flex items-center gap-2">
+                {!item.level && item.icon}
+                {item.label}
+              </span>
               {item.level && (
                 <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-white/15 bg-white/10 px-1.5 py-0.5 text-[9px] font-black uppercase sm:px-2 sm:py-1 sm:text-[10px]">
                   {item.icon}

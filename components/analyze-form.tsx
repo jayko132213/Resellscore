@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import { useEffect, useState } from "react";
-import { Camera, CheckCircle2, FileText, Link2, Loader2, Pencil, Upload } from "lucide-react";
+import { CheckCircle2, Link2, Loader2, Pencil, ScanSearch, ShieldCheck, Sparkles, Upload } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { detectListingWarnings, warningPenalty } from "@/lib/listing-risk";
 import type { AnalysisResult } from "@/lib/types";
@@ -9,7 +9,7 @@ import { cn, euros } from "@/lib/utils";
 import { ScoreCard } from "./score-card";
 import { Button } from "./ui/button";
 
-type AnalyzeMode = "link" | "photo" | "manual";
+type AnalyzeMode = "link" | "photo";
 type Precision = "haute" | "moyenne" | "basse";
 type LinkPreview = {
   productGuess: string;
@@ -327,7 +327,7 @@ export function AnalyzeForm({
   canAnalyze: boolean;
   demoMode?: boolean;
 }) {
-  const [mode, setMode] = useState<AnalyzeMode>("link");
+  const [mode, setMode] = useState<AnalyzeMode>("photo");
   const [result, setResult] = useState<AnalysisResult | null>(initialResult);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -399,19 +399,16 @@ export function AnalyzeForm({
 
     try {
       const vintedUrl = String(formData.get("vintedUrl") || "").trim();
-      const productPhotos = formData.getAll("photos").filter((item): item is File => item instanceof File && item.size > 0);
       const screenshots = formData.getAll("screenshots").filter((item): item is File => item instanceof File && item.size > 0);
-      const hasManualInfo = Boolean(formData.get("title")) && Number(formData.get("sellerPrice")) > 0;
 
       if (mode === "link" && !vintedUrl) throw new Error("Colle un lien Vinted pour lancer l'analyse.");
-      if (vintedUrl && !isVintedUrl(vintedUrl)) throw new Error("Le lien doit venir de Vinted. Sinon choisis Photo/Capture ou Manuel.");
-      if (mode === "photo" && productPhotos.length === 0 && screenshots.length === 0) throw new Error("Ajoute une photo du produit ou une capture de l'annonce.");
-      if (mode === "manual" && !hasManualInfo) throw new Error("Ajoute au minimum un titre et un prix vendeur.");
+      if (vintedUrl && !isVintedUrl(vintedUrl)) throw new Error("Le lien doit venir de Vinted. Sinon choisis Capture d'annonce.");
+      if (mode === "photo" && screenshots.length === 0) throw new Error("Ajoute une capture complète de l'annonce Vinted.");
       if (mode === "link" && !productConfirmed && !productCorrection.trim()) {
         throw new Error("Confirme le produit détecté ou corrige-le avant de lancer l'analyse.");
       }
 
-      const precision: Precision = mode === "link" ? "haute" : mode === "photo" ? "moyenne" : "basse";
+      const precision: Precision = mode === "link" ? "haute" : "moyenne";
 
       if (((demoMode || isDemoSupabase()) && aiReady) || (mode === "photo" && aiReady)) {
         const response = await fetch("/api/analyze-gemini", {
@@ -434,7 +431,7 @@ export function AnalyzeForm({
 
       const supabase = createSupabaseBrowserClient();
       const { data: { user } } = await supabase.auth.getUser();
-      const files = [...productPhotos, ...screenshots];
+      const files = [...screenshots];
       const photoUrls: string[] = [];
 
       if (user) {
@@ -480,10 +477,9 @@ export function AnalyzeForm({
       <form action={onSubmit} className="grid gap-5 rounded-lg border border-white/10 bg-panel p-5">
         <div>
           <p className="text-sm font-semibold text-white">Choisis ta méthode d'analyse</p>
-          <div className="mt-3 grid gap-3 md:grid-cols-3">
-            <ModeButton active={mode === "photo"} icon={<Camera size={18} />} title="Capture d'annonce" text="Recommandé" onClick={() => setMode("photo")} />
+          <div className="mt-3 grid gap-3 md:grid-cols-2">
+            <ModeButton active={mode === "photo"} icon={<ScanSearch size={18} />} title="Capture d'annonce" text="Le plus précis" onClick={() => setMode("photo")} />
             <ModeButton active={mode === "link"} icon={<Link2 size={18} />} title="Lien Vinted" text="Optionnel" onClick={() => setMode("link")} />
-            <ModeButton active={mode === "manual"} icon={<FileText size={18} />} title="Manuel" text="Moins précis" onClick={() => setMode("manual")} />
           </div>
         </div>
 
@@ -595,23 +591,22 @@ export function AnalyzeForm({
         )}
 
         {mode === "photo" && (
-          <section className="grid gap-4 rounded-md border border-white/10 bg-white/[0.03] p-4">
-            <FilePicker name="screenshots" label="Capture d'écran de l'annonce" icon={<Upload size={16} />} />
-            <FilePicker name="photos" label="Photo du produit en plus si besoin" icon={<Camera size={16} />} />
-            <p className="rounded-md border border-white/10 bg-white/[0.04] p-3 text-sm leading-6 text-muted">
-              Recommandé : envoie une capture où l'on voit le titre, le prix, l'état, la description et les photos de l'annonce. Une première IA vérifie d'abord que c'est bien une annonce lisible.
-            </p>
-            <ManualDetails />
-          </section>
-        )}
-
-        {mode === "manual" && (
-          <section className="grid gap-4 rounded-md border border-white/10 bg-white/[0.03] p-4">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="rounded-full bg-amber-400/15 px-3 py-1 text-xs font-semibold text-amber-200">Moins précis</span>
-              <p className="text-sm text-muted">Sans lien ni capture, l'analyse se base seulement sur ce que tu écris.</p>
+          <section className="grid gap-4 rounded-md border border-accent/20 bg-gradient-to-br from-accent/10 via-white/[0.04] to-sky-400/10 p-4 shadow-[0_0_36px_rgba(74,222,128,0.08)]">
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="rounded-full bg-accent px-3 py-1 text-xs font-black text-ink">Recommandé</span>
+                <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-semibold text-white">IA en 3 étapes</span>
+              </div>
+              <p className="mt-3 text-sm leading-6 text-slate-300">
+                Envoie une capture complète de l'annonce. Il faut voir le titre, le prix, les photos, la description, l'état, la taille, la marque si elle existe et les infos vendeur visibles.
+              </p>
             </div>
-            <ManualDetails required />
+            <FilePicker name="screenshots" label="Capture complète de l'annonce" icon={<Upload size={16} />} />
+            <div className="grid gap-2 sm:grid-cols-3">
+              <StepCard icon={<ShieldCheck size={16} />} title="1. Vérification" text="L'IA vérifie que c'est bien une annonce lisible." />
+              <StepCard icon={<ScanSearch size={16} />} title="2. Lecture" text="Elle lit prix, état, défauts possibles et détails visibles." />
+              <StepCard icon={<Sparkles size={16} />} title="3. Score" text="Elle sort achat, négociation, revente, marge et risque." />
+            </div>
           </section>
         )}
 
@@ -676,21 +671,15 @@ function ModeButton({ active, icon, title, text, onClick }: { active: boolean; i
   );
 }
 
-function ManualDetails({ required = false }: { required?: boolean }) {
+function StepCard({ icon, title, text }: { icon: React.ReactNode; title: string; text: string }) {
   return (
-    <>
-      <Field label="Titre de l'annonce ou du produit" name="title" required={required} />
-      <label className="grid gap-2">
-        <span className="text-sm text-muted">Description ou infos utiles</span>
-        <textarea name="description" rows={4} className="rounded-md border border-white/10 bg-white/5 px-3 py-3 outline-none focus:border-accent" />
-      </label>
-      <div className="grid gap-4 md:grid-cols-2">
-        <Field label="Prix vendeur (€)" name="sellerPrice" type="number" min="1" step="0.01" required={required} />
-        <Field label="Marque" name="brand" />
-        <Field label="Taille" name="size" />
-        <Field label="État" name="condition" />
+    <div className="rounded-md border border-white/10 bg-black/20 p-3">
+      <div className="flex items-center gap-2 text-sm font-black text-white">
+        <span className="grid h-7 w-7 place-items-center rounded-md bg-accent/15 text-accent">{icon}</span>
+        {title}
       </div>
-    </>
+      <p className="mt-2 text-xs leading-5 text-muted">{text}</p>
+    </div>
   );
 }
 
@@ -704,7 +693,7 @@ function FilePicker({ name, label, icon }: { name: string; label: string; icon: 
   }, [files]);
 
   function onChange(event: React.ChangeEvent<HTMLInputElement>) {
-    const selected = Array.from(event.target.files || []).filter((file) => file.type.startsWith("image/"));
+    const selected = Array.from(event.target.files || []).filter((file) => file.type.startsWith("image/")).slice(0, 1);
     setFiles((current) => {
       current.forEach((file) => URL.revokeObjectURL(file.url));
       return selected.map((file) => ({
@@ -718,9 +707,9 @@ function FilePicker({ name, label, icon }: { name: string; label: string; icon: 
     <label className="grid gap-3 rounded-md border border-dashed border-white/15 bg-white/[0.03] p-4">
       <span className="flex items-center gap-2 text-sm font-medium text-white">{icon}{label}</span>
       <span className="inline-flex h-11 max-w-full items-center justify-center rounded-md bg-white/10 px-4 text-sm font-semibold text-white transition hover:bg-white/15">
-        {files.length > 0 ? "Changer la photo" : "Sélectionner un fichier"}
+        {files.length > 0 ? "Changer la capture" : "Sélectionner une capture"}
       </span>
-      <input name={name} type="file" accept="image/*" multiple className="sr-only" onChange={onChange} />
+      <input name={name} type="file" accept="image/*" className="sr-only" onChange={onChange} />
       {files.length > 0 ? (
         <div className="grid gap-3 sm:grid-cols-2">
           {files.map((file) => (
@@ -733,7 +722,7 @@ function FilePicker({ name, label, icon }: { name: string; label: string; icon: 
           ))}
         </div>
       ) : (
-        <span className="text-xs leading-5 text-muted">Image JPG, PNG ou capture lisible. Après sélection, la photo apparaît ici.</span>
+        <span className="text-xs leading-5 text-muted">JPG ou PNG. Une fois choisie, la capture apparaît ici avant l'analyse.</span>
       )}
     </label>
   );

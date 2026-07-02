@@ -262,16 +262,16 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
         {mode === "signup" && (
           <div>
             <label className="text-sm text-muted">Pseudo</label>
-            <input name="pseudo" type="text" placeholder="ex: VintageFlow" className="mt-2 w-full rounded-md border border-white/10 bg-white/5 px-3 py-3 outline-none focus:border-accent" />
+            <input name="pseudo" type="text" autoComplete="nickname" placeholder="ex: VintageFlow" className="mt-2 w-full rounded-md border border-white/10 bg-white/5 px-3 py-3 text-base outline-none focus:border-accent" />
           </div>
         )}
         <div>
           <label className="text-sm text-muted">Email</label>
-          <input name="email" type="email" required className="mt-2 w-full rounded-md border border-white/10 bg-white/5 px-3 py-3 outline-none focus:border-accent" />
+          <input name="email" type="email" required autoComplete="email" inputMode="email" className="mt-2 w-full rounded-md border border-white/10 bg-white/5 px-3 py-3 text-base outline-none focus:border-accent" />
         </div>
         <div>
           <label className="text-sm text-muted">Mot de passe</label>
-          <input name="password" type="password" required minLength={8} className="mt-2 w-full rounded-md border border-white/10 bg-white/5 px-3 py-3 outline-none focus:border-accent" />
+          <input name="password" type="password" required minLength={8} autoComplete={mode === "login" ? "current-password" : "new-password"} className="mt-2 w-full rounded-md border border-white/10 bg-white/5 px-3 py-3 text-base outline-none focus:border-accent" />
         </div>
         <div>
           <label className="text-sm text-muted">Choisis ton interface</label>
