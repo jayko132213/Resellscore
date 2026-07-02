@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { getConfiguredAiProvider, runListingAnalysis } from "@/lib/ai";
+import { getConfiguredAiProvider, runListingAnalysis, validateListingImages } from "@/lib/ai";
 import { isVintedUrl, readVintedListing, titleFromVintedUrl } from "@/lib/vinted";
 
 const fieldsSchema = z.object({
@@ -46,12 +46,24 @@ export async function POST(request: Request) {
       data: Buffer.from(await file.arrayBuffer()).toString("base64")
     })));
 
+    const hasScreenshotMode = files.length > 0 && !parsed.data.vintedUrl;
+    let visualProductGuess = "";
+    if (hasScreenshotMode) {
+      const visualCheck = await validateListingImages(images);
+      visualProductGuess = visualCheck.productGuess || "";
+      if (!visualCheck.valid) {
+        return NextResponse.json({
+          error: `Ceci n'est pas reconnu comme une annonce Vinted/marketplace. ${visualCheck.reason || "Envoie une capture ou l'on voit le produit, le prix et le texte de l'annonce."}`
+        }, { status: 422 });
+      }
+    }
+
     const scraped = await readVintedListing(parsed.data.vintedUrl);
     const urlTitle = titleFromVintedUrl(parsed.data.vintedUrl);
     const correctedProduct = parsed.data.productCorrection?.trim();
     const formProduct = parsed.data.title !== "Article Vinted a analyser" && parsed.data.title !== "Article Vinted à analyser" ? parsed.data.title : "";
-    const mergedTitle = correctedProduct || formProduct || scraped?.title || urlTitle || "Article Vinted a analyser";
-    const mergedDescription = [correctedProduct ? `Correction utilisateur sur le produit exact: ${correctedProduct}` : "", !correctedProduct && formProduct ? `Produit confirme par l'utilisateur: ${formProduct}` : "", scraped?.description, parsed.data.description, scraped?.rawText ? `Infos Vinted lues: ${scraped.rawText.slice(0, 1200)}` : ""]
+    const mergedTitle = correctedProduct || formProduct || visualProductGuess || scraped?.title || urlTitle || "Article Vinted a analyser";
+    const mergedDescription = [visualProductGuess ? `Premiere IA: capture reconnue comme annonce. Produit probable: ${visualProductGuess}` : "", correctedProduct ? `Correction utilisateur sur le produit exact: ${correctedProduct}` : "", !correctedProduct && formProduct ? `Produit confirme par l'utilisateur: ${formProduct}` : "", scraped?.description, parsed.data.description, scraped?.rawText ? `Infos Vinted lues: ${scraped.rawText.slice(0, 1200)}` : ""]
       .filter(Boolean)
       .join("\n\n")
       .trim() || "Analyse demandee a partir des infos fournies.";

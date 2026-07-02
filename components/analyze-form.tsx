@@ -413,7 +413,7 @@ export function AnalyzeForm({
 
       const precision: Precision = mode === "link" ? "haute" : mode === "photo" ? "moyenne" : "basse";
 
-      if ((demoMode || isDemoSupabase()) && aiReady) {
+      if (((demoMode || isDemoSupabase()) && aiReady) || (mode === "photo" && aiReady)) {
         const response = await fetch("/api/analyze-gemini", {
           method: "POST",
           body: formData
@@ -481,8 +481,8 @@ export function AnalyzeForm({
         <div>
           <p className="text-sm font-semibold text-white">Choisis ta méthode d'analyse</p>
           <div className="mt-3 grid gap-3 md:grid-cols-3">
-            <ModeButton active={mode === "link"} icon={<Link2 size={18} />} title="Lien Vinted" text="Le plus précis" onClick={() => setMode("link")} />
-            <ModeButton active={mode === "photo"} icon={<Camera size={18} />} title="Photo / capture" text="Précision moyenne" onClick={() => setMode("photo")} />
+            <ModeButton active={mode === "photo"} icon={<Camera size={18} />} title="Capture d'annonce" text="Recommandé" onClick={() => setMode("photo")} />
+            <ModeButton active={mode === "link"} icon={<Link2 size={18} />} title="Lien Vinted" text="Optionnel" onClick={() => setMode("link")} />
             <ModeButton active={mode === "manual"} icon={<FileText size={18} />} title="Manuel" text="Moins précis" onClick={() => setMode("manual")} />
           </div>
         </div>
@@ -596,10 +596,10 @@ export function AnalyzeForm({
 
         {mode === "photo" && (
           <section className="grid gap-4 rounded-md border border-white/10 bg-white/[0.03] p-4">
-            <FilePicker name="photos" label="Photo du produit" icon={<Camera size={16} />} />
             <FilePicker name="screenshots" label="Capture d'écran de l'annonce" icon={<Upload size={16} />} />
+            <FilePicker name="photos" label="Photo du produit en plus si besoin" icon={<Camera size={16} />} />
             <p className="rounded-md border border-white/10 bg-white/[0.04] p-3 text-sm leading-6 text-muted">
-              Précision moyenne : la capture doit montrer le prix, le titre et les photos de l'annonce.
+              Recommandé : envoie une capture où l'on voit le titre, le prix, l'état, la description et les photos de l'annonce. Une première IA vérifie d'abord que c'est bien une annonce lisible.
             </p>
             <ManualDetails />
           </section>

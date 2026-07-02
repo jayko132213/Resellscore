@@ -12,7 +12,7 @@ export default async function AnalyzePage({ searchParams }: { searchParams: Prom
       <main className="shell py-10">
         <div className="max-w-3xl">
           <h1 className="text-4xl font-bold">Nouvelle analyse</h1>
-          <p className="mt-2 text-muted">Ajoute un lien Vinted, une photo produit ou une capture d'écran de l'annonce.</p>
+          <p className="mt-2 text-muted">Ajoute surtout une capture d'annonce : l'IA lit le prix, le titre, l'etat et les photos visibles.</p>
         </div>
         <AnalyzeForm initialResult={null} canAnalyze demoMode />
       </main>
@@ -36,7 +36,7 @@ export default async function AnalyzePage({ searchParams }: { searchParams: Prom
     <main className="shell py-10">
       <div className="max-w-3xl">
         <h1 className="text-4xl font-bold">Nouvelle analyse</h1>
-        <p className="mt-2 text-muted">{usage.remaining} analyse(s) restante(s). Les liens Vinted sont acceptés comme contexte, sans scraping automatique.</p>
+        <p className="mt-2 text-muted">{usage.remaining} analyse(s) restante(s). Capture d'annonce recommandee : l'IA controle d'abord que l'image ressemble bien a une annonce lisible.</p>
       </div>
       <AnalyzeForm initialResult={selected?.result ?? null} canAnalyze={usage.canAnalyze} />
     </main>

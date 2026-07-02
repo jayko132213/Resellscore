@@ -5,6 +5,13 @@ import type { VintedListingSnapshot } from "./vinted";
 
 export type AiProvider = "openai" | "gemini" | "fallback";
 
+export type VisionListingCheck = {
+  valid: boolean;
+  productGuess: string;
+  reason: string;
+  confidence: "faible" | "moyenne" | "haute";
+};
+
 type AnalysisInput = {
   title: string;
   description: string;
@@ -301,6 +308,8 @@ Tu analyses une annonce Vinted/vintage pour un revendeur. Réponds uniquement en
 Si des infos Vinted sont fournies ci-dessous, utilise-les comme source prioritaire. Ne remplace pas le prix de l'annonce par une estimation.
 Ne prétends pas avoir consulté une boutique officielle si tu ne l'as pas fait : estime le prix neuf prudemment avec ta connaissance produit.
 Si des images sont fournies, lis-les vraiment : produit, marque visible, état, défauts, prix affiché sur capture, accessoires, texte vendeur.
+Si tu vois un défaut possible sur une image mais que ce n'est pas certain, formule-le comme incertain. Ne transforme jamais un doute visuel en certitude.
+Si la capture montre une annonce, lis le prix, le titre, l'état, la taille, la marque, la description et les photos visibles avant de noter.
 Si tu ne peux pas lire une info, dis que la confiance est plus faible au lieu d'inventer.
 
 Annonce:
@@ -340,6 +349,27 @@ Format exact:
   "optimizedDescription": string,
   "disclaimer": string
 }`;
+}
+
+function visionCheckPrompt() {
+  return `
+Tu es la premiere IA de controle ResellScore. Tu regardes une ou plusieurs images envoyees par l'utilisateur.
+Objectif: verifier que l'image ressemble vraiment a une capture d'annonce de marketplace/Vinted ou a une annonce de produit a analyser.
+
+Reponds uniquement en JSON valide:
+{
+  "valid": boolean,
+  "productGuess": string,
+  "reason": string,
+  "confidence": "faible" | "moyenne" | "haute"
+}
+
+Regles:
+- valid=true si on voit une annonce avec un produit, un prix, un titre, une description, une marque ou des infos vendeur.
+- valid=false si c'est une photo sans contexte, une conversation, une page vide, une image random, un menu, ou si aucun produit/prix/annonce n'est lisible.
+- productGuess doit resumer le produit detecte, par exemple "maillot Manchester United Adidas taille S".
+- Si une info est floue, dis-le dans reason au lieu d'inventer.
+`;
 }
 
 function withDisclaimer(result: AnalysisResult): AnalysisResult {
@@ -391,6 +421,40 @@ async function runOpenAiAnalysis(input: AnalysisInput): Promise<AnalysisResult> 
   return withDisclaimer(JSON.parse(text) as AnalysisResult);
 }
 
+async function runOpenAiVisionCheck(images: NonNullable<AnalysisInput["images"]>): Promise<VisionListingCheck> {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) return { valid: true, productGuess: "", reason: "Controle visuel indisponible.", confidence: "faible" };
+
+  const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`
+    },
+    body: JSON.stringify({
+      model: process.env.OPENAI_MODEL || "gpt-4o-mini",
+      response_format: { type: "json_object" },
+      messages: [
+        {
+          role: "user",
+          content: [
+            { type: "text", text: visionCheckPrompt() },
+            ...images.map((image) => ({
+              type: "image_url",
+              image_url: { url: `data:${image.mimeType};base64,${image.data}` }
+            }))
+          ]
+        }
+      ]
+    })
+  });
+
+  if (!response.ok) return { valid: true, productGuess: "", reason: "Controle visuel non bloque pour eviter un faux refus.", confidence: "faible" };
+  const json = await response.json();
+  const text = String(json.choices?.[0]?.message?.content || "").replace(/```json|```/g, "").trim();
+  return JSON.parse(text) as VisionListingCheck;
+}
+
 async function runGeminiAnalysis(input: AnalysisInput): Promise<AnalysisResult> {
   const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
   if (!apiKey) {
@@ -414,6 +478,41 @@ async function runGeminiAnalysis(input: AnalysisInput): Promise<AnalysisResult> 
   const response = await model.generateContent(parts);
   const text = response.response.text().replace(/```json|```/g, "").trim();
   return withDisclaimer(JSON.parse(text) as AnalysisResult);
+}
+
+async function runGeminiVisionCheck(images: NonNullable<AnalysisInput["images"]>): Promise<VisionListingCheck> {
+  const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+  if (!apiKey) return { valid: true, productGuess: "", reason: "Controle visuel indisponible.", confidence: "faible" };
+
+  const genAI = new GoogleGenerativeAI(apiKey);
+  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+  const response = await model.generateContent([
+    { text: visionCheckPrompt() },
+    ...images.map((image) => ({
+      inlineData: {
+        data: image.data,
+        mimeType: image.mimeType
+      }
+    }))
+  ]);
+  const text = response.response.text().replace(/```json|```/g, "").trim();
+  return JSON.parse(text) as VisionListingCheck;
+}
+
+export async function validateListingImages(images: NonNullable<AnalysisInput["images"]>): Promise<VisionListingCheck> {
+  if (images.length === 0) {
+    return { valid: false, productGuess: "", reason: "Ajoute une capture de l'annonce.", confidence: "faible" };
+  }
+
+  const provider = getConfiguredAiProvider();
+  try {
+    if (provider === "openai") return await runOpenAiVisionCheck(images);
+    if (provider === "gemini") return await runGeminiVisionCheck(images);
+  } catch {
+    return { valid: true, productGuess: "", reason: "Controle visuel incertain, analyse autorisee.", confidence: "faible" };
+  }
+
+  return { valid: true, productGuess: "", reason: "Controle visuel indisponible.", confidence: "faible" };
 }
 
 export async function runListingAnalysis(input: AnalysisInput): Promise<AnalysisResult> {
