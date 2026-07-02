@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Crown, Monitor, RefreshCw, Search, Smartphone, UserMinus, UserPlus } from "lucide-react";
+import { Crown, Monitor, RefreshCw, Search, Smartphone, TabletSmartphone, UserMinus, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { PlanKey } from "@/lib/plans";
 import { euros } from "@/lib/utils";
@@ -15,7 +15,7 @@ type AdminUser = {
   avatarUrl: string;
   plan: PlanKey;
   status: string;
-  lastDevice: "mobile" | "desktop" | "unknown";
+  lastDevice: "iphone" | "samsung" | "android" | "pc" | "mobile" | "desktop" | "unknown";
   lastDeviceLabel: string;
   lastDeviceAt?: string | null;
   manualExpiresAt?: string | null;
@@ -102,6 +102,12 @@ export function AdminPanel() {
     const text = `${user.email} ${user.pseudo} ${user.plan}`.toLowerCase();
     return text.includes(filter.trim().toLowerCase());
   });
+
+  function deviceIcon(device: AdminUser["lastDevice"]) {
+    if (device === "iphone") return <Smartphone size={14} />;
+    if (device === "samsung" || device === "android" || device === "mobile") return <TabletSmartphone size={14} />;
+    return <Monitor size={14} />;
+  }
 
   return (
     <div className="grid gap-6">
@@ -240,7 +246,7 @@ export function AdminPanel() {
                   <MiniStat
                     label="Appareil"
                     value={user.lastDeviceLabel || "Inconnu"}
-                    icon={user.lastDevice === "mobile" ? <Smartphone size={14} /> : <Monitor size={14} />}
+                    icon={deviceIcon(user.lastDevice)}
                   />
                   <MiniStat label="Analyses" value={`${user.analysesCount}`} />
                   <MiniStat label="Connexion" value={user.lastSignInAt ? new Date(user.lastSignInAt).toLocaleDateString("fr-FR") : "Jamais"} />

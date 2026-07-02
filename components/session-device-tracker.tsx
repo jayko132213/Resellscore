@@ -3,12 +3,22 @@
 import { useEffect } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
-function detectDevice() {
-  if (typeof navigator === "undefined") return "desktop";
+type DeviceType = "iphone" | "samsung" | "android" | "pc";
+
+function detectDevice(): { type: DeviceType; label: string } {
+  if (typeof navigator === "undefined") return { type: "pc", label: "PC" };
+
   const userAgent = navigator.userAgent.toLowerCase();
+  const platform = navigator.platform?.toLowerCase() || "";
   const touchDevice = typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches;
-  const mobileAgent = /android|iphone|ipad|ipod|mobile|windows phone/.test(userAgent);
-  return mobileAgent || touchDevice ? "mobile" : "desktop";
+  const isIphone = /iphone|ipod/.test(userAgent) || (platform === "macintel" && touchDevice);
+  const isSamsung = /samsung|sm-|gt-|galaxy/.test(userAgent);
+  const isAndroid = /android|mobile|windows phone/.test(userAgent);
+
+  if (isIphone) return { type: "iphone", label: "iPhone" };
+  if (isSamsung) return { type: "samsung", label: "Samsung" };
+  if (isAndroid || touchDevice) return { type: "android", label: "Android" };
+  return { type: "pc", label: "PC" };
 }
 
 export function SessionDeviceTracker() {
@@ -29,13 +39,13 @@ export function SessionDeviceTracker() {
         })
       }).catch(() => {});
 
-      const deviceType = detectDevice();
+      const device = detectDevice();
       const currentDevice = session.user.user_metadata?.lastDevice;
-      if (currentDevice !== deviceType) {
+      if (currentDevice !== device.type) {
         await supabase.auth.updateUser({
           data: {
-            lastDevice: deviceType,
-            lastDeviceLabel: deviceType === "mobile" ? "Téléphone" : "Ordinateur",
+            lastDevice: device.type,
+            lastDeviceLabel: device.label,
             lastDeviceAt: new Date().toISOString()
           }
         }).catch(() => {});

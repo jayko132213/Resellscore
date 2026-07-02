@@ -28,6 +28,20 @@ type AnalysisRow = {
   } | null;
 };
 
+function normalizeDevice(raw: unknown) {
+  const value = typeof raw === "string" ? raw : "";
+  if (["iphone", "samsung", "android", "pc", "mobile", "desktop"].includes(value)) return value;
+  return "unknown";
+}
+
+function deviceLabel(device: string) {
+  if (device === "iphone") return "iPhone";
+  if (device === "samsung") return "Samsung";
+  if (device === "android" || device === "mobile") return "Android";
+  if (device === "pc" || device === "desktop") return "PC";
+  return "Inconnu";
+}
+
 export async function GET() {
   const owner = await getAdminAccess();
   if (!owner.allowed) {
@@ -44,8 +58,8 @@ export async function GET() {
           avatarUrl: "",
           plan: "elite",
           status: "active",
-          lastDevice: "mobile",
-          lastDeviceLabel: "Téléphone",
+          lastDevice: "iphone",
+          lastDeviceLabel: "iPhone",
           createdAt: new Date().toISOString(),
           lastSignInAt: new Date().toISOString(),
           analysesCount: 2,
@@ -86,7 +100,7 @@ export async function GET() {
     const profile = profileById.get(authUser.id);
     const userAnalyses = analysesByUser.get(authUser.id) || [];
     const metadata = authUser.user_metadata || {};
-    const lastDevice = metadata.lastDevice === "mobile" ? "mobile" : metadata.lastDevice === "desktop" ? "desktop" : "unknown";
+    const lastDevice = normalizeDevice(metadata.lastDevice);
 
     return {
       id: authUser.id,
@@ -96,7 +110,7 @@ export async function GET() {
       plan: profile?.plan || "free",
       status: profile?.subscription_status || "inactive",
       lastDevice,
-      lastDeviceLabel: typeof metadata.lastDeviceLabel === "string" ? metadata.lastDeviceLabel : lastDevice === "mobile" ? "Téléphone" : lastDevice === "desktop" ? "Ordinateur" : "Inconnu",
+      lastDeviceLabel: typeof metadata.lastDeviceLabel === "string" ? metadata.lastDeviceLabel : deviceLabel(lastDevice),
       lastDeviceAt: typeof metadata.lastDeviceAt === "string" ? metadata.lastDeviceAt : null,
       manualExpiresAt: profile?.manual_expires_at || null,
       createdAt: profile?.created_at || authUser.created_at,

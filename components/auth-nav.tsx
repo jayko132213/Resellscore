@@ -15,6 +15,8 @@ type DemoUser = {
   isAdmin?: boolean;
 };
 
+type HeaderDevice = "iphone" | "samsung" | "android" | "pc";
+
 function isDemoMode() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
@@ -57,12 +59,27 @@ function planBadge(plan: PlanKey) {
   };
 }
 
+function detectHeaderDevice(): HeaderDevice {
+  if (typeof navigator === "undefined") return "pc";
+  const userAgent = navigator.userAgent.toLowerCase();
+  const platform = navigator.platform?.toLowerCase() || "";
+  const touchDevice = typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches;
+
+  if (/iphone|ipod/.test(userAgent) || (platform === "macintel" && touchDevice)) return "iphone";
+  if (/samsung|sm-|gt-|galaxy/.test(userAgent)) return "samsung";
+  if (/android|mobile|windows phone/.test(userAgent) || touchDevice) return "android";
+  return "pc";
+}
+
 export function AuthNav({ serverSignedIn = false }: { serverSignedIn?: boolean }) {
   const [user, setUser] = useState<DemoUser | null>(null);
   const [signedIn, setSignedIn] = useState(serverSignedIn);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [headerDevice, setHeaderDevice] = useState<HeaderDevice>("pc");
 
   useEffect(() => {
+    setHeaderDevice(detectHeaderDevice());
+
     function loadDemoUser() {
       const stored = localStorage.getItem("resellscore_demo_user");
       if (stored) {
@@ -107,6 +124,7 @@ export function AuthNav({ serverSignedIn = false }: { serverSignedIn?: boolean }
   const displayName = user?.pseudo?.trim() || "";
   const activePlan = normalizePlan(user?.plan);
   const badge = planBadge(activePlan);
+  const compactHeader = headerDevice !== "pc";
   const mainLinks = [
     { href: signedIn ? "/analyze" : "/signup", label: "Analyser", level: "", icon: null, primary: true },
     { href: "/opportunities", label: "Tendances", level: "Elite", icon: <ArrowUp size={11} /> },
@@ -129,7 +147,7 @@ export function AuthNav({ serverSignedIn = false }: { serverSignedIn?: boolean }
 
   return (
     <div className="relative flex min-w-0 items-center gap-2 sm:gap-3">
-      <div className="hidden items-center gap-3 xl:flex">
+      <div className={compactHeader ? "hidden" : "hidden items-center gap-3 xl:flex"}>
         <Link href={signedIn ? "/analyze" : "/signup"} className="rounded-md bg-accent px-4 py-2 font-semibold text-ink shadow-[0_0_24px_rgba(74,222,128,0.18)]">
           Analyser
         </Link>
@@ -168,11 +186,16 @@ export function AuthNav({ serverSignedIn = false }: { serverSignedIn?: boolean }
       <button
         type="button"
         onClick={() => setMenuOpen((value) => !value)}
-        className="inline-grid h-11 w-11 shrink-0 place-items-center rounded-full border border-white/15 bg-white/5 text-white shadow-[0_0_18px_rgba(255,255,255,0.05)] hover:bg-white/10 xl:hidden"
+        className={
+          compactHeader
+            ? "inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-full border border-accent/35 bg-accent/10 px-4 font-bold text-accent shadow-[0_0_18px_rgba(74,222,128,0.12)]"
+            : "inline-grid h-11 w-11 shrink-0 place-items-center rounded-full border border-white/15 bg-white/5 text-white shadow-[0_0_18px_rgba(255,255,255,0.05)] hover:bg-white/10 xl:hidden"
+        }
         aria-label={menuOpen ? "Fermer le menu" : "Ouvrir le menu"}
         aria-expanded={menuOpen}
       >
         {menuOpen ? <X size={19} /> : <MoreHorizontal size={22} />}
+        {compactHeader && <span>Menu</span>}
       </button>
 
       {menuOpen && (
@@ -241,13 +264,13 @@ export function AuthNav({ serverSignedIn = false }: { serverSignedIn?: boolean }
 
       {signedIn ? (
         <>
-          {user?.isAdmin && (
+          {user?.isAdmin && !compactHeader && (
             <Link href="/admin-command" className="hidden items-center gap-2 rounded-md border border-accent/30 bg-accent/10 px-3 py-2 font-bold text-accent hover:bg-accent/15 xl:inline-flex">
               <KeyRound size={16} />
               Admin
             </Link>
           )}
-          <Link href="/profile" className="hidden min-h-10 min-w-10 items-center gap-2 rounded-md border border-white/15 bg-white/10 px-3 py-2 font-medium text-white hover:bg-white/15 xl:flex" aria-label="Profil">
+          {!compactHeader && <Link href="/profile" className="hidden min-h-10 min-w-10 items-center gap-2 rounded-md border border-white/15 bg-white/10 px-3 py-2 font-medium text-white hover:bg-white/15 xl:flex" aria-label="Profil">
             {user?.avatar ? (
               <span className={`relative h-8 w-8 shrink-0 overflow-visible rounded-full border-2 ${badge.ring}`}>
                 {activePlan !== "free" && (
@@ -268,8 +291,8 @@ export function AuthNav({ serverSignedIn = false }: { serverSignedIn?: boolean }
               </span>
             )}
             {displayName && <span className="hidden max-w-24 truncate md:inline">{displayName}</span>}
-          </Link>
-          <button
+          </Link>}
+          {!compactHeader && <button
             type="button"
             onClick={signOut}
             className="hidden h-10 w-10 place-items-center rounded-md border border-white/15 bg-white/5 text-white hover:bg-white/10 xl:grid"
@@ -277,10 +300,10 @@ export function AuthNav({ serverSignedIn = false }: { serverSignedIn?: boolean }
             title="Se deconnecter"
           >
             <LogOut size={17} />
-          </button>
+          </button>}
         </>
       ) : (
-        <Link href="/login" className="hidden rounded-md bg-white px-4 py-2 font-semibold text-ink xl:inline-flex">
+        <Link href="/login" className={compactHeader ? "hidden" : "hidden rounded-md bg-white px-4 py-2 font-semibold text-ink xl:inline-flex"}>
           Connexion
         </Link>
       )}
