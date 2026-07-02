@@ -81,15 +81,23 @@ export function AuthNav({ serverSignedIn = false }: { serverSignedIn?: boolean }
   const [signedIn, setSignedIn] = useState(serverSignedIn);
   const [menuOpen, setMenuOpen] = useState(false);
   const [headerDevice, setHeaderDevice] = useState<HeaderDevice>("pc");
+  const [smallViewport, setSmallViewport] = useState(false);
 
   useEffect(() => {
     function refreshDevice() {
       setHeaderDevice(detectHeaderDevice());
     }
 
+    function refreshViewport() {
+      setSmallViewport(window.innerWidth < 1100);
+    }
+
     refreshDevice();
+    refreshViewport();
     window.addEventListener("resellscore-device-updated", refreshDevice);
     window.addEventListener("storage", refreshDevice);
+    window.addEventListener("resize", refreshViewport);
+    window.addEventListener("orientationchange", refreshViewport);
 
     function loadDemoUser() {
       const stored = localStorage.getItem("resellscore_demo_user");
@@ -110,6 +118,8 @@ export function AuthNav({ serverSignedIn = false }: { serverSignedIn?: boolean }
         window.removeEventListener("resellscore-device-updated", refreshDevice);
         window.removeEventListener("storage", loadDemoUser);
         window.removeEventListener("storage", refreshDevice);
+        window.removeEventListener("resize", refreshViewport);
+        window.removeEventListener("orientationchange", refreshViewport);
       };
     }
 
@@ -136,13 +146,15 @@ export function AuthNav({ serverSignedIn = false }: { serverSignedIn?: boolean }
     return () => {
       window.removeEventListener("resellscore-device-updated", refreshDevice);
       window.removeEventListener("storage", refreshDevice);
+      window.removeEventListener("resize", refreshViewport);
+      window.removeEventListener("orientationchange", refreshViewport);
     };
   }, []);
 
   const displayName = user?.pseudo?.trim() || "";
   const activePlan = normalizePlan(user?.plan);
   const badge = planBadge(activePlan);
-  const compactHeader = headerDevice !== "pc";
+  const compactHeader = headerDevice !== "pc" || smallViewport;
   const mainLinks = [
     { href: signedIn ? "/analyze" : "/signup", label: "Analyser", level: "", icon: null, primary: true },
     { href: "/opportunities", label: "Tendances", level: "Elite", icon: <ArrowUp size={11} /> },
