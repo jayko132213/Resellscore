@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getConfiguredAiProvider, runListingAnalysis } from "@/lib/ai";
+import { isVintedUrl, readVintedListing, titleFromVintedUrl } from "@/lib/vinted";
 
 const fieldsSchema = z.object({
   title: z.string().min(0).max(160).default("Article Vinted a analyser"),
@@ -11,92 +12,6 @@ const fieldsSchema = z.object({
   condition: z.string().max(80).optional().nullable(),
   vintedUrl: z.string().optional().nullable()
 });
-
-function isVintedUrl(value?: string | null) {
-  if (!value) return true;
-  try {
-    const host = new URL(value).hostname.toLowerCase();
-    return host === "vinted.fr" || host.endsWith(".vinted.fr") || host === "vinted.com" || host.endsWith(".vinted.com");
-  } catch {
-    return false;
-  }
-}
-
-function cleanText(value: string) {
-  return value
-    .replace(/<[^>]+>/g, " ")
-    .replace(/&quot;/g, "\"")
-    .replace(/&#x27;|&#39;/g, "'")
-    .replace(/&amp;/g, "&")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-function titleFromVintedUrl(value?: string | null) {
-  if (!value) return "";
-  try {
-    const url = new URL(value);
-    const itemPart = url.pathname.split("/").find((part) => part.includes("-"));
-    if (!itemPart) return "";
-    return decodeURIComponent(itemPart)
-      .replace(/^\d+-?/, "")
-      .replace(/[-_]+/g, " ")
-      .replace(/\s+/g, " ")
-      .trim();
-  } catch {
-    return "";
-  }
-}
-
-function extractMeta(html: string, property: string) {
-  const escaped = property.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const re = new RegExp(`<meta[^>]+(?:property|name)=["']${escaped}["'][^>]+content=["']([^"']+)["'][^>]*>`, "i");
-  const match = html.match(re);
-  return match ? cleanText(match[1]) : "";
-}
-
-function guessBrandFromText(text: string) {
-  const brands = ["Ralph Lauren", "Lacoste", "Nike", "Adidas", "Carhartt", "Stone Island", "Arc'teryx", "Levi's", "Patagonia", "Moncler", "Apple", "Sony", "Nintendo", "New Balance", "Burberry", "Dr. Martens"];
-  const lowered = text.toLowerCase();
-  return brands.find((brand) => lowered.includes(brand.toLowerCase().replace("'", "")) || lowered.includes(brand.toLowerCase())) || "";
-}
-
-function extractPrice(text: string) {
-  const match = text.match(/(?:€|eur|prix|price)\s*[:\-]?\s*(\d{1,5})|(\d{1,5})\s*(?:€|eur|euros?)/i);
-  return Number(match?.[1] || match?.[2] || 0);
-}
-
-async function readVintedPage(vintedUrl?: string | null) {
-  if (!vintedUrl) return null;
-
-  try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 7000);
-    const response = await fetch(vintedUrl, {
-      signal: controller.signal,
-      headers: {
-        "User-Agent": "Mozilla/5.0 ResellScoreBot/1.0",
-        "Accept": "text/html,application/xhtml+xml"
-      }
-    });
-    clearTimeout(timeout);
-    if (!response.ok) return null;
-
-    const html = await response.text();
-    const title = extractMeta(html, "og:title") || extractMeta(html, "twitter:title") || titleFromVintedUrl(vintedUrl);
-    const description = extractMeta(html, "og:description") || extractMeta(html, "description");
-    const combined = `${title} ${description}`;
-
-    return {
-      title,
-      description,
-      sellerPrice: extractPrice(combined),
-      brand: guessBrandFromText(combined)
-    };
-  } catch {
-    return null;
-  }
-}
 
 export async function POST(request: Request) {
   try {
@@ -129,15 +44,16 @@ export async function POST(request: Request) {
       data: Buffer.from(await file.arrayBuffer()).toString("base64")
     })));
 
-    const scraped = await readVintedPage(parsed.data.vintedUrl);
+    const scraped = await readVintedListing(parsed.data.vintedUrl);
     const urlTitle = titleFromVintedUrl(parsed.data.vintedUrl);
     const mergedTitle = scraped?.title || (parsed.data.title === "Article Vinted a analyser" ? urlTitle : parsed.data.title) || urlTitle || "Article Vinted a analyser";
-    const mergedDescription = [scraped?.description, parsed.data.description]
+    const mergedDescription = [scraped?.description, parsed.data.description, scraped?.rawText ? `Infos Vinted lues: ${scraped.rawText.slice(0, 1200)}` : ""]
       .filter(Boolean)
       .join("\n\n")
       .trim() || "Analyse demandee a partir des infos fournies.";
-    const mergedBrand = parsed.data.brand || scraped?.brand || guessBrandFromText(`${mergedTitle} ${mergedDescription}`) || undefined;
+    const mergedBrand = parsed.data.brand || scraped?.brand || undefined;
     const mergedPrice = scraped?.sellerPrice || parsed.data.sellerPrice;
+    const mergedCondition = parsed.data.condition || scraped?.condition || undefined;
 
     const result = await runListingAnalysis({
       title: mergedTitle,
@@ -145,10 +61,11 @@ export async function POST(request: Request) {
       sellerPrice: mergedPrice,
       brand: mergedBrand,
       size: parsed.data.size || undefined,
-      condition: parsed.data.condition || undefined,
+      condition: mergedCondition,
       vintedUrl: parsed.data.vintedUrl || undefined,
       photoCount: images.length,
-      images
+      images,
+      sourceListing: scraped
     });
 
     return NextResponse.json({ result, poweredBy: provider });

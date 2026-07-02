@@ -1,6 +1,7 @@
 ﻿import { GoogleGenerativeAI } from "@google/generative-ai";
 import { detectListingWarnings, warningPenalty } from "./listing-risk";
 import type { AnalysisResult } from "./types";
+import type { VintedListingSnapshot } from "./vinted";
 
 export type AiProvider = "openai" | "gemini" | "fallback";
 
@@ -17,6 +18,7 @@ type AnalysisInput = {
     mimeType: string;
     data: string;
   }[];
+  sourceListing?: VintedListingSnapshot | null;
 };
 
 const marketProfiles = [
@@ -154,7 +156,8 @@ function detectMarket(input: AnalysisInput) {
     input.title,
     input.description,
     input.brand,
-    input.condition
+    input.condition,
+    input.sourceListing?.rawText
   ].filter(Boolean).join(" ")).toLowerCase().replace(/[-_/]+/g, " ");
   const found = marketProfiles.find((profile) => profile.match.some((word) => text.includes(word)));
   const seed = hashText(text);
@@ -185,16 +188,16 @@ function detectMarket(input: AnalysisInput) {
 
 function fallbackAnalysis(input: AnalysisInput): AnalysisResult {
   const market = detectMarket(input);
-  const fullText = [input.vintedUrl, input.title, input.description, input.brand, input.condition].filter(Boolean).join(" ");
+  const fullText = [input.vintedUrl, input.title, input.description, input.brand, input.condition, input.sourceListing?.rawText].filter(Boolean).join(" ");
   const extractedPrice = extractPriceFromText(fullText);
-  const sellerPrice = input.sellerPrice > 1 ? input.sellerPrice : extractedPrice || Math.round(market.vinted * 0.72);
-  const condition = input.condition?.toLowerCase() || "";
+  const sellerPrice = input.sellerPrice > 1 ? input.sellerPrice : input.sourceListing?.sellerPrice || extractedPrice || Math.round(market.vinted * 0.72);
+  const condition = (input.condition || input.sourceListing?.condition || "").toLowerCase();
   const resale = Math.round(market.vinted * (input.vintedUrl ? 1.08 : input.photoCount > 0 ? 1 : 0.92));
   const margin = resale - sellerPrice;
   const priceScore = priceScoreFromMarket(sellerPrice, market.vinted);
   const demandScore = Math.max(1, Math.min(10, market.demand));
   const marginScore = Math.max(2, Math.min(10, 5 + (margin / Math.max(sellerPrice, 1)) * 3));
-  const conditionScore = conditionScoreFromText([input.condition, input.description, input.title].filter(Boolean).join(" "));
+  const conditionScore = conditionScoreFromText([input.condition, input.sourceListing?.condition, input.description, input.title, input.sourceListing?.rawText].filter(Boolean).join(" "));
   const suspiciousDiscount = sellerPrice < market.vinted * 0.35;
   const categoryRisk = market.category === "Carte graphique" ? 1.2 : 0;
   const baseRiskScore = Math.max(2, Math.min(9.8, 8.5 - demandScore * 0.35 - marginScore * 0.2 + categoryRisk + (suspiciousDiscount ? 3.2 : 0)));
@@ -220,7 +223,7 @@ function fallbackAnalysis(input: AnalysisInput): AnalysisResult {
     decision: hasCriticalWarning ? "Éviter" : suspiciousDiscount ? "Négocier" : score >= 8 ? "Acheter" : score >= 6 ? "Négocier" : "Éviter",
     summary: suspiciousDiscount
       ? `${market.brand} détecté. Prix neuf prudent autour de ${market.retail} €, comparables occasion autour de ${market.vinted} €. À ${sellerPrice} €, marge énorme si authentique, mais risque d'arnaque très élevé.`
-      : `${market.brand} détecté. Prix neuf prudent autour de ${market.retail} €, comparables occasion autour de ${market.vinted} €.`,
+      : `${market.brand} détecté. Prix neuf prudent autour de ${market.retail} €, comparables occasion autour de ${market.vinted} €. Prix annonce pris en compte : ${sellerPrice} €.`,
     market: {
       detectedBrand: market.brand,
       detectedCategory: market.category,
@@ -229,13 +232,13 @@ function fallbackAnalysis(input: AnalysisInput): AnalysisResult {
       demandLevel: demandLabel(demandScore),
       conditionImpact: suspiciousDiscount
         ? "Risque élevé : demande facture, test vidéo, numéro de série et remise en main propre."
-        : condition ? `État pris en compte : ${condition}.` : "État non lu dans le lien : ajoute une capture ou une description pour affiner."
+        : condition ? `État pris en compte : ${condition}.` : "État non lu clairement dans le lien : demande une photo proche des défauts et de l'étiquette."
     },
     basis: {
       comparableListings: Math.round(22 + demandScore * 5 + (input.vintedUrl ? 14 : input.photoCount > 0 ? 6 : 0)),
       confidence: input.vintedUrl ? "haute" : input.photoCount > 0 ? "moyenne" : "faible",
       sources: [
-        ...(input.vintedUrl ? ["lien Vinted validé"] : input.photoCount > 0 ? ["photo/capture fournie"] : ["saisie manuelle"]),
+        ...(input.sourceListing?.fetched ? ["page Vinted lue"] : input.vintedUrl ? ["lien Vinted validé"] : input.photoCount > 0 ? ["photo/capture fournie"] : ["saisie manuelle"]),
         "marque détectée",
         "prix neuf prudent",
         "prix occasion estimé",
@@ -271,9 +274,24 @@ function fallbackAnalysis(input: AnalysisInput): AnalysisResult {
 }
 
 function analysisPrompt(input: AnalysisInput) {
+  const sourceListing = input.sourceListing
+    ? `
+Infos lues depuis la page Vinted:
+- Page lue: ${input.sourceListing.fetched ? "oui" : "non"}
+- Titre Vinted: ${input.sourceListing.title || "non lu"}
+- Description Vinted: ${input.sourceListing.description || "non lue"}
+- Prix annonce Vinted: ${input.sourceListing.sellerPrice || "non lu"} EUR
+- Marque lue/devinee: ${input.sourceListing.brand || "non lue"}
+- Etat lu/devine: ${input.sourceListing.condition || "non lu"}
+- Image principale: ${input.sourceListing.imageUrl || "non lue"}
+- Texte brut utile: ${input.sourceListing.rawText?.slice(0, 1800) || "vide"}
+`
+    : "Infos lues depuis la page Vinted: aucune page lue.\n";
+
   return `
 Tu analyses une annonce Vinted/vintage pour un revendeur. Réponds uniquement en JSON valide.
-Ne prétends pas scraper Vinted ou une boutique si tu n'as pas accès aux pages. Donne des estimations prudentes.
+Si des infos Vinted sont fournies ci-dessous, utilise-les comme source prioritaire. Ne remplace pas le prix de l'annonce par une estimation.
+Ne prétends pas avoir consulté une boutique officielle si tu ne l'as pas fait : estime le prix neuf prudemment avec ta connaissance produit.
 Si des images sont fournies, lis-les vraiment : produit, marque visible, état, défauts, prix affiché sur capture, accessoires, texte vendeur.
 Si tu ne peux pas lire une info, dis que la confiance est plus faible au lieu d'inventer.
 
@@ -286,8 +304,10 @@ Taille: ${input.size || "non précisée"}
 État: ${input.condition || "non précisé"}
 Lien optionnel: ${input.vintedUrl || "absent"}
 Nombre de photos fournies: ${input.photoCount}
+${sourceListing}
 
 Analyse la demande, le prix neuf estimé de la marque, les prix Vinted/reconditionnés comparables estimés, l'état, la marge et le risque.
+Compare clairement: prix de l'annonce, prix neuf probable, prix Vinted occasion probable selon l'état, marge possible.
 Si le prix est anormalement bas pour un objet tech cher, ne le note pas comme nul : explique que l'opportunité est énorme si authentique mais que le risque d'arnaque est très élevé.
 
 Format exact:

@@ -6,6 +6,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getUsageState } from "@/lib/usage";
 import { enforceProfileExpiry } from "@/lib/subscription";
+import { readVintedListing } from "@/lib/vinted";
 
 const schema = z.object({
   title: z.string().min(3).max(160),
@@ -44,15 +45,27 @@ export async function POST(request: Request) {
   if (!usage.canAnalyze) return NextResponse.json({ error: "Quota d'analyse atteint." }, { status: 402 });
 
   const input = parsed.data;
+  const sourceListing = await readVintedListing(input.vintedUrl);
+  const mergedTitle = sourceListing?.title || input.title;
+  const mergedDescription = [
+    sourceListing?.description,
+    input.description,
+    sourceListing?.rawText ? `Infos Vinted lues: ${sourceListing.rawText.slice(0, 1200)}` : ""
+  ].filter(Boolean).join("\n\n");
+  const mergedPrice = sourceListing?.sellerPrice || input.sellerPrice;
+  const mergedBrand = input.brand || sourceListing?.brand || undefined;
+  const mergedCondition = input.condition || sourceListing?.condition || undefined;
+
   const result = await runListingAnalysis({
-    title: input.title,
-    description: input.description,
-    sellerPrice: input.sellerPrice,
-    brand: input.brand || undefined,
+    title: mergedTitle,
+    description: mergedDescription,
+    sellerPrice: mergedPrice,
+    brand: mergedBrand,
     size: input.size || undefined,
-    condition: input.condition || undefined,
+    condition: mergedCondition,
     vintedUrl: input.vintedUrl || undefined,
-    photoCount: input.photoUrls.length
+    photoCount: input.photoUrls.length,
+    sourceListing
   });
 
   const admin = createSupabaseAdminClient();
@@ -60,12 +73,12 @@ export async function POST(request: Request) {
     .from("analyses")
     .insert({
       user_id: user.id,
-      title: input.title,
-      description: input.description,
-      seller_price: input.sellerPrice,
-      brand: input.brand,
+      title: mergedTitle,
+      description: mergedDescription,
+      seller_price: mergedPrice,
+      brand: mergedBrand,
       size: input.size,
-      condition: input.condition,
+      condition: mergedCondition,
       vinted_url: input.vintedUrl || null,
       photo_urls: input.photoUrls,
       result
