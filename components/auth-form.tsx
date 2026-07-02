@@ -1,13 +1,24 @@
 "use client";
 
-import { type FormEvent, useEffect, useState } from "react";
+import { type FormEvent, type ReactNode, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Mail } from "lucide-react";
+import { Mail, Monitor, MoreHorizontal, Smartphone, TabletSmartphone } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { Button } from "./ui/button";
 
 type DeviceChoice = "auto" | "iphone" | "samsung" | "pc";
 type DeviceType = "iphone" | "samsung" | "android" | "pc";
+
+const deviceOptions: {
+  value: Exclude<DeviceChoice, "auto">;
+  label: string;
+  detail: string;
+  icon: ReactNode;
+}[] = [
+  { value: "iphone", label: "iPhone", detail: "Petit format avec menu 3 points", icon: <Smartphone size={22} /> },
+  { value: "samsung", label: "Samsung", detail: "Petit format avec menu 3 points", icon: <TabletSmartphone size={22} /> },
+  { value: "pc", label: "PC", detail: "Grand format avec barre complete", icon: <Monitor size={22} /> }
+];
 
 function isDemoMode() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
@@ -91,13 +102,15 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [callbackError, setCallbackError] = useState(false);
-  const [deviceChoice, setDeviceChoice] = useState<DeviceChoice>("auto");
+  const [deviceChoice, setDeviceChoice] = useState<DeviceChoice>("iphone");
 
   useEffect(() => {
     setCallbackError(new URLSearchParams(window.location.search).has("error"));
     const stored = localStorage.getItem("resellscore_device_choice");
-    if (stored === "auto" || stored === "iphone" || stored === "samsung" || stored === "pc") {
+    if (stored === "iphone" || stored === "samsung" || stored === "pc") {
       setDeviceChoice(stored);
+    } else if (stored === "auto") {
+      setDeviceChoice(resolveDevice("auto").type === "pc" ? "pc" : "iphone");
     }
   }, []);
 
@@ -261,25 +274,38 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
           <input name="password" type="password" required minLength={8} className="mt-2 w-full rounded-md border border-white/10 bg-white/5 px-3 py-3 outline-none focus:border-accent" />
         </div>
         <div>
-          <label className="text-sm text-muted">Interface a utiliser</label>
-          <select
-            name="device"
-            value={deviceChoice}
-            onChange={(event) => {
-              const value = event.target.value as DeviceChoice;
-              setDeviceChoice(value);
-              saveDeviceChoice(value);
-            }}
-            className="mt-2 w-full rounded-md border border-white/10 bg-white/5 px-3 py-3 outline-none focus:border-accent"
-          >
-            <option value="auto" className="bg-ink">Detecter automatiquement</option>
-            <option value="iphone" className="bg-ink">iPhone</option>
-            <option value="samsung" className="bg-ink">Samsung</option>
-            <option value="pc" className="bg-ink">PC</option>
-          </select>
-          <p className="mt-2 text-xs leading-5 text-muted">
-            Si l'iPhone bug, choisis iPhone ici et le site force l'interface mobile propre.
-          </p>
+          <label className="text-sm text-muted">Choisis ton interface</label>
+          <input type="hidden" name="device" value={deviceChoice} />
+          <div className="mt-2 grid grid-cols-3 gap-2">
+            {deviceOptions.map((option) => {
+              const active = deviceChoice === option.value;
+              return (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => {
+                    setDeviceChoice(option.value);
+                    saveDeviceChoice(option.value);
+                  }}
+                  className={`grid min-h-28 place-items-center gap-2 rounded-md border p-3 text-center transition ${
+                    active ? "border-accent bg-accent/10 text-accent" : "border-white/10 bg-white/[0.04] text-white hover:border-white/25"
+                  }`}
+                >
+                  <span className="grid h-10 w-10 place-items-center rounded-full border border-current/30">
+                    {option.icon}
+                  </span>
+                  <span className="text-sm font-black">{option.label}</span>
+                  <span className="text-[10px] leading-4 text-muted">{option.detail}</span>
+                  {option.value !== "pc" && (
+                    <span className="inline-flex items-center gap-1 rounded-full border border-white/10 px-2 py-1 text-[10px] font-bold">
+                      <MoreHorizontal size={13} />
+                      Menu
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
         </div>
         {error && <p className="rounded-md bg-rose-500/10 p-3 text-sm text-rose-200">{error}</p>}
         <Button disabled={loading} className="gap-2">
