@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import { useEffect, useState } from "react";
-import { Camera, FileText, Link2, Loader2, Upload } from "lucide-react";
+import { Camera, CheckCircle2, FileText, Link2, Loader2, Pencil, Upload } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { detectListingWarnings, warningPenalty } from "@/lib/listing-risk";
 import type { AnalysisResult } from "@/lib/types";
@@ -79,6 +79,22 @@ function extractPriceFromText(text: string) {
   const euroMatch = text.match(/(?:prix|price|eur|€)\s*[:\-]?\s*(\d{2,5})|(\d{2,5})\s*(?:eur|€)/i);
   if (!euroMatch) return 0;
   return Number(euroMatch[1] || euroMatch[2] || 0);
+}
+
+function productGuessFromVintedUrl(value: string) {
+  if (!value) return "";
+  try {
+    const url = new URL(value);
+    const itemPart = url.pathname.split("/").find((part) => /^\d+[-_]/.test(part) || part.includes("-"));
+    if (!itemPart) return "";
+    return decodeURIComponent(itemPart)
+      .replace(/^\d+[-_]?/, "")
+      .replace(/[-_]+/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+  } catch {
+    return "";
+  }
 }
 
 function conditionScoreFromText(text: string) {
@@ -308,6 +324,10 @@ export function AnalyzeForm({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [aiReady, setAiReady] = useState(false);
+  const [linkProductGuess, setLinkProductGuess] = useState("");
+  const [productConfirmed, setProductConfirmed] = useState(false);
+  const [needsCorrection, setNeedsCorrection] = useState(false);
+  const [productCorrection, setProductCorrection] = useState("");
 
   useEffect(() => {
     fetch("/api/ai/status", { cache: "no-store" })
@@ -336,6 +356,9 @@ export function AnalyzeForm({
       if (vintedUrl && !isVintedUrl(vintedUrl)) throw new Error("Le lien doit venir de Vinted. Sinon choisis Photo/Capture ou Manuel.");
       if (mode === "photo" && productPhotos.length === 0 && screenshots.length === 0) throw new Error("Ajoute une photo du produit ou une capture de l'annonce.");
       if (mode === "manual" && !hasManualInfo) throw new Error("Ajoute au minimum un titre et un prix vendeur.");
+      if (mode === "link" && linkProductGuess && !productConfirmed && !productCorrection.trim()) {
+        throw new Error("Confirme le produit détecté ou corrige-le avant de lancer l'analyse.");
+      }
 
       const precision: Precision = mode === "link" ? "haute" : mode === "photo" ? "moyenne" : "basse";
 
@@ -384,6 +407,7 @@ export function AnalyzeForm({
           brand: formData.get("brand"),
           size: formData.get("size"),
           condition: formData.get("condition"),
+          productCorrection: formData.get("productCorrection"),
           vintedUrl,
           photoUrls
         })
@@ -414,7 +438,76 @@ export function AnalyzeForm({
 
         {mode === "link" && (
           <section className="grid gap-4 rounded-md border border-white/10 bg-white/[0.03] p-4">
-            <Field label="Lien Vinted" name="vintedUrl" type="url" placeholder="https://www.vinted.fr/items/..." required />
+            <label className="grid gap-2">
+              <span className="text-sm text-muted">Lien Vinted</span>
+              <input
+                name="vintedUrl"
+                type="url"
+                placeholder="https://www.vinted.fr/items/..."
+                required
+                onChange={(event) => {
+                  const nextGuess = productGuessFromVintedUrl(event.target.value);
+                  setLinkProductGuess(nextGuess);
+                  setProductConfirmed(false);
+                  setNeedsCorrection(false);
+                  setProductCorrection("");
+                }}
+                className="rounded-md border border-white/10 bg-white/5 px-3 py-3 outline-none focus:border-accent"
+              />
+            </label>
+            <input type="hidden" name="title" value={productCorrection.trim() || linkProductGuess || "Article Vinted à analyser"} />
+            <input type="hidden" name="productCorrection" value={productCorrection.trim()} />
+            {linkProductGuess && (
+              <div className="rounded-md border border-accent/25 bg-accent/10 p-4">
+                <p className="text-xs font-black uppercase tracking-wide text-accent">Produit détecté</p>
+                <p className="mt-2 text-lg font-black text-white">{linkProductGuess}</p>
+                <p className="mt-1 text-sm leading-6 text-muted">
+                  C'est bien ça ? Si le titre Vinted est flou, corrige le produit exact pour une recherche beaucoup plus précise.
+                </p>
+                <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setProductConfirmed(true);
+                      setNeedsCorrection(false);
+                      setProductCorrection("");
+                    }}
+                    className={cn(
+                      "inline-flex min-h-11 items-center justify-center gap-2 rounded-md px-3 text-sm font-black",
+                      productConfirmed ? "bg-accent text-ink" : "border border-white/10 bg-white/5 text-white"
+                    )}
+                  >
+                    <CheckCircle2 size={16} />
+                    Oui, analyser ça
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setProductConfirmed(false);
+                      setNeedsCorrection(true);
+                    }}
+                    className={cn(
+                      "inline-flex min-h-11 items-center justify-center gap-2 rounded-md px-3 text-sm font-black",
+                      needsCorrection ? "border border-amber-300/40 bg-amber-400/15 text-amber-100" : "border border-white/10 bg-white/5 text-white"
+                    )}
+                  >
+                    <Pencil size={16} />
+                    Non, corriger
+                  </button>
+                </div>
+                {needsCorrection && (
+                  <label className="mt-3 grid gap-2">
+                    <span className="text-sm text-muted">Produit exact</span>
+                    <input
+                      value={productCorrection}
+                      onChange={(event) => setProductCorrection(event.target.value)}
+                      placeholder="Ex: maillot PSG Nike domicile 2019 taille M"
+                      className="rounded-md border border-white/10 bg-black/20 px-3 py-3 outline-none focus:border-accent"
+                    />
+                  </label>
+                )}
+              </div>
+            )}
             <Field label="Prix affiché sur l'annonce (€)" name="sellerPrice" type="number" min="1" step="0.01" placeholder="ex: 150" />
             <label className="grid gap-2">
               <span className="text-sm text-muted">Texte/commentaire de l'annonce</span>

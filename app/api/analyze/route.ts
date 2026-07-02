@@ -15,6 +15,7 @@ const schema = z.object({
   brand: z.string().max(80).optional().nullable(),
   size: z.string().max(40).optional().nullable(),
   condition: z.string().max(80).optional().nullable(),
+  productCorrection: z.string().max(180).optional().nullable(),
   vintedUrl: z.string().url().optional().nullable().or(z.literal("")).refine((value) => {
     if (!value) return true;
     try {
@@ -46,8 +47,10 @@ export async function POST(request: Request) {
 
   const input = parsed.data;
   const sourceListing = await readVintedListing(input.vintedUrl);
-  const mergedTitle = sourceListing?.title || input.title;
+  const correctedProduct = input.productCorrection?.trim();
+  const mergedTitle = correctedProduct || sourceListing?.title || input.title;
   const mergedDescription = [
+    correctedProduct ? `Correction utilisateur sur le produit exact: ${correctedProduct}` : "",
     sourceListing?.description,
     input.description,
     sourceListing?.rawText ? `Infos Vinted lues: ${sourceListing.rawText.slice(0, 1200)}` : ""
