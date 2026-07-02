@@ -241,7 +241,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
   }
 
   return (
-    <div className="mx-auto mt-10 grid max-w-md gap-4 rounded-lg border border-white/10 bg-panel p-6">
+    <div className="mx-auto mt-6 grid max-w-md gap-4 rounded-lg border border-white/10 bg-panel p-4 sm:mt-10 sm:p-6">
       <Button type="button" variant="secondary" onClick={signInWithGoogle} disabled={loading} className="w-full gap-2">
         <span className="grid h-5 w-5 place-items-center rounded-full bg-white text-xs font-bold text-ink">G</span>
         {loading ? "Connexion..." : "Continuer avec Google"}
@@ -276,7 +276,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
         <div>
           <label className="text-sm text-muted">Choisis ton interface</label>
           <input type="hidden" name="device" value={deviceChoice} />
-          <div className="mt-2 grid grid-cols-3 gap-2">
+          <div className="mt-2 grid grid-cols-3 gap-1.5 sm:gap-2">
             {deviceOptions.map((option) => {
               const active = deviceChoice === option.value;
               return (
@@ -287,17 +287,17 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
                     setDeviceChoice(option.value);
                     saveDeviceChoice(option.value);
                   }}
-                  className={`grid min-h-28 place-items-center gap-2 rounded-md border p-3 text-center transition ${
+                  className={`grid min-h-20 place-items-center gap-1.5 rounded-md border p-2 text-center transition sm:min-h-28 sm:gap-2 sm:p-3 ${
                     active ? "border-accent bg-accent/10 text-accent" : "border-white/10 bg-white/[0.04] text-white hover:border-white/25"
                   }`}
                 >
-                  <span className="grid h-10 w-10 place-items-center rounded-full border border-current/30">
+                  <span className="grid h-8 w-8 place-items-center rounded-full border border-current/30 sm:h-10 sm:w-10">
                     {option.icon}
                   </span>
-                  <span className="text-sm font-black">{option.label}</span>
-                  <span className="text-[10px] leading-4 text-muted">{option.detail}</span>
+                  <span className="text-xs font-black sm:text-sm">{option.label}</span>
+                  <span className="hidden text-[10px] leading-4 text-muted sm:block">{option.detail}</span>
                   {option.value !== "pc" && (
-                    <span className="inline-flex items-center gap-1 rounded-full border border-white/10 px-2 py-1 text-[10px] font-bold">
+                    <span className="hidden items-center gap-1 rounded-full border border-white/10 px-2 py-1 text-[10px] font-bold sm:inline-flex">
                       <MoreHorizontal size={13} />
                       Menu
                     </span>

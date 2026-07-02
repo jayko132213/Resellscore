@@ -164,7 +164,7 @@ export function AuthNav({ serverSignedIn = false }: { serverSignedIn?: boolean }
   }
 
   return (
-    <div className="relative flex min-w-0 items-center gap-2 sm:gap-3">
+    <div className="relative flex min-w-0 items-center gap-1.5 sm:gap-3">
       <div className={compactHeader ? "hidden" : "hidden items-center gap-3 xl:flex"}>
         <Link href={signedIn ? "/analyze" : "/signup"} className="rounded-md bg-accent px-4 py-2 font-semibold text-ink shadow-[0_0_24px_rgba(74,222,128,0.18)]">
           Analyser
@@ -206,7 +206,7 @@ export function AuthNav({ serverSignedIn = false }: { serverSignedIn?: boolean }
         onClick={() => setMenuOpen((value) => !value)}
         className={
           compactHeader
-            ? "inline-grid h-11 w-11 shrink-0 place-items-center rounded-full border border-accent/35 bg-accent/10 text-accent shadow-[0_0_18px_rgba(74,222,128,0.12)]"
+            ? "inline-grid h-10 w-10 shrink-0 place-items-center rounded-full border border-accent/35 bg-accent/10 text-accent shadow-[0_0_18px_rgba(74,222,128,0.12)] sm:h-11 sm:w-11"
             : "inline-grid h-11 w-11 shrink-0 place-items-center rounded-full border border-white/15 bg-white/5 text-white shadow-[0_0_18px_rgba(255,255,255,0.05)] hover:bg-white/10 xl:hidden"
         }
         aria-label={menuOpen ? "Fermer le menu" : "Ouvrir le menu"}
@@ -216,20 +216,20 @@ export function AuthNav({ serverSignedIn = false }: { serverSignedIn?: boolean }
       </button>
 
       {menuOpen && (
-        <div className="fixed inset-x-4 top-20 z-50 grid max-h-[calc(100dvh-96px)] gap-2 overflow-y-auto rounded-lg border border-white/10 bg-ink p-3 shadow-glow sm:left-auto sm:right-6 sm:w-[360px]">
-          <p className="px-2 pb-1 text-xs font-bold uppercase tracking-wide text-muted">Navigation</p>
+        <div className="fixed inset-x-2 top-16 z-50 grid max-h-[calc(100dvh-76px)] gap-1.5 overflow-y-auto rounded-md border border-white/10 bg-ink p-2 shadow-glow sm:inset-x-4 sm:top-20 sm:max-h-[calc(100dvh-96px)] sm:gap-2 sm:rounded-lg sm:p-3 md:left-auto md:right-6 md:w-[360px]">
+          <p className="px-2 pb-1 text-[11px] font-bold uppercase tracking-wide text-muted sm:text-xs">Navigation</p>
           {mainLinks.map((item) => (
             <Link
               key={item.href}
               href={item.href}
               onClick={() => setMenuOpen(false)}
-              className={`flex min-h-12 items-center justify-between gap-3 rounded-md px-4 py-3 font-semibold ${
+              className={`flex min-h-10 items-center justify-between gap-2 rounded-md px-3 py-2.5 text-sm font-semibold sm:min-h-12 sm:gap-3 sm:px-4 sm:py-3 sm:text-base ${
                 item.primary ? "bg-accent text-ink" : "border border-white/10 bg-white/[0.04] text-white"
               }`}
             >
               <span>{item.label}</span>
               {item.level && (
-                <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-white/15 bg-white/10 px-2 py-1 text-[10px] font-black uppercase">
+                <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-white/15 bg-white/10 px-1.5 py-0.5 text-[9px] font-black uppercase sm:px-2 sm:py-1 sm:text-[10px]">
                   {item.icon}
                   {item.level}
                 </span>
@@ -240,7 +240,7 @@ export function AuthNav({ serverSignedIn = false }: { serverSignedIn?: boolean }
             <Link
               href="/admin-command"
               onClick={() => setMenuOpen(false)}
-              className="flex min-h-12 items-center justify-between gap-3 rounded-md border border-accent/30 bg-accent/10 px-4 py-3 font-bold text-accent"
+              className="flex min-h-10 items-center justify-between gap-2 rounded-md border border-accent/30 bg-accent/10 px-3 py-2.5 text-sm font-bold text-accent sm:min-h-12 sm:gap-3 sm:px-4 sm:py-3 sm:text-base"
             >
               <span>Admin</span>
               <KeyRound size={16} />
@@ -251,7 +251,7 @@ export function AuthNav({ serverSignedIn = false }: { serverSignedIn?: boolean }
             <Link
               href="/profile"
               onClick={() => setMenuOpen(false)}
-              className="flex min-h-12 items-center justify-between gap-3 rounded-md border border-white/10 bg-white/[0.04] px-4 py-3 font-semibold text-white"
+              className="flex min-h-10 items-center justify-between gap-2 rounded-md border border-white/10 bg-white/[0.04] px-3 py-2.5 text-sm font-semibold text-white sm:min-h-12 sm:gap-3 sm:px-4 sm:py-3 sm:text-base"
             >
               <span>Profil</span>
               <UserCircle size={17} />
@@ -261,7 +261,7 @@ export function AuthNav({ serverSignedIn = false }: { serverSignedIn?: boolean }
             <button
               type="button"
               onClick={signOut}
-              className="flex min-h-12 items-center justify-between gap-3 rounded-md border border-white/10 bg-white/[0.04] px-4 py-3 text-left font-semibold text-white"
+              className="flex min-h-10 items-center justify-between gap-2 rounded-md border border-white/10 bg-white/[0.04] px-3 py-2.5 text-left text-sm font-semibold text-white sm:min-h-12 sm:gap-3 sm:px-4 sm:py-3 sm:text-base"
             >
               <span>Se deconnecter</span>
               <LogOut size={17} />
@@ -271,7 +271,7 @@ export function AuthNav({ serverSignedIn = false }: { serverSignedIn?: boolean }
             <Link
               href="/login"
               onClick={() => setMenuOpen(false)}
-              className="flex min-h-12 items-center justify-between rounded-md bg-white px-4 py-3 font-bold text-ink"
+              className="flex min-h-10 items-center justify-between rounded-md bg-white px-3 py-2.5 text-sm font-bold text-ink sm:min-h-12 sm:px-4 sm:py-3 sm:text-base"
             >
               Connexion
             </Link>

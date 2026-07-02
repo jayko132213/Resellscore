@@ -14,10 +14,10 @@ export async function Header() {
 
   return (
     <header className="sticky top-0 z-30 border-b border-white/10 bg-ink/80 backdrop-blur">
-      <div className="shell flex h-16 min-w-0 items-center justify-between gap-3">
-        <Link href="/" className="flex min-w-0 shrink items-center gap-2.5 font-semibold" aria-label="Accueil ResellScore">
-          <img src="/resellscore-icon.svg" alt="" className="h-9 w-9 shrink-0 rounded-lg" />
-          <span className="truncate text-base tracking-normal">
+      <div className="shell flex h-14 min-w-0 items-center justify-between gap-2 sm:h-16 sm:gap-3">
+        <Link href="/" className="flex min-w-0 shrink items-center gap-2 font-semibold sm:gap-2.5" aria-label="Accueil ResellScore">
+          <img src="/resellscore-icon.svg" alt="" className="h-8 w-8 shrink-0 rounded-lg sm:h-9 sm:w-9" />
+          <span className="truncate text-sm tracking-normal sm:text-base">
             Resell<span className="text-accent">Score</span>
           </span>
         </Link>
