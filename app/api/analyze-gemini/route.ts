@@ -103,7 +103,7 @@ export async function POST(request: Request) {
     const provider = getConfiguredAiProvider();
 
     if (provider === "fallback") {
-      return NextResponse.json({ error: "Aucune IA n'est configuree. Ajoute OPENAI_API_KEY ou GEMINI_API_KEY dans .env.local." }, { status: 503 });
+      return NextResponse.json({ error: "Le moteur d'analyse est temporairement indisponible. Reessaie dans quelques minutes." }, { status: 503 });
     }
 
     const form = await request.formData();

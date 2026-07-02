@@ -206,18 +206,17 @@ export function AuthNav({ serverSignedIn = false }: { serverSignedIn?: boolean }
         onClick={() => setMenuOpen((value) => !value)}
         className={
           compactHeader
-            ? "inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-full border border-accent/35 bg-accent/10 px-4 font-bold text-accent shadow-[0_0_18px_rgba(74,222,128,0.12)]"
+            ? "inline-grid h-11 w-11 shrink-0 place-items-center rounded-full border border-accent/35 bg-accent/10 text-accent shadow-[0_0_18px_rgba(74,222,128,0.12)]"
             : "inline-grid h-11 w-11 shrink-0 place-items-center rounded-full border border-white/15 bg-white/5 text-white shadow-[0_0_18px_rgba(255,255,255,0.05)] hover:bg-white/10 xl:hidden"
         }
         aria-label={menuOpen ? "Fermer le menu" : "Ouvrir le menu"}
         aria-expanded={menuOpen}
       >
         {menuOpen ? <X size={19} /> : <MoreHorizontal size={22} />}
-        {compactHeader && <span>Menu</span>}
       </button>
 
       {menuOpen && (
-        <div className="fixed inset-x-4 top-20 z-50 grid max-h-[calc(100dvh-96px)] gap-2 overflow-y-auto rounded-lg border border-white/10 bg-ink p-3 shadow-glow sm:left-auto sm:right-6 sm:w-[360px] xl:hidden">
+        <div className="fixed inset-x-4 top-20 z-50 grid max-h-[calc(100dvh-96px)] gap-2 overflow-y-auto rounded-lg border border-white/10 bg-ink p-3 shadow-glow sm:left-auto sm:right-6 sm:w-[360px]">
           <p className="px-2 pb-1 text-xs font-bold uppercase tracking-wide text-muted">Navigation</p>
           {mainLinks.map((item) => (
             <Link

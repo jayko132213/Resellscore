@@ -395,8 +395,6 @@ export async function runListingAnalysis(input: AnalysisInput): Promise<Analysis
     if (provider === "gemini") return await runGeminiAnalysis(input);
   } catch (error) {
     const fallback = fallbackAnalysis(input);
-    const providerLabel = provider === "openai" ? "OpenAI" : "Gemini";
-
     return {
       ...fallback,
       summary: fallback.summary,
@@ -404,7 +402,7 @@ export async function runListingAnalysis(input: AnalysisInput): Promise<Analysis
         ? {
             ...fallback.basis,
             confidence: fallback.basis.confidence === "haute" ? "moyenne" : fallback.basis.confidence,
-            sources: [...fallback.basis.sources, `moteur ResellScore (${providerLabel} indisponible en local)`]
+            sources: [...fallback.basis.sources, "moteur ResellScore temporairement indisponible"]
           }
         : fallback.basis,
       negotiationTips: [
