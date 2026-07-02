@@ -82,6 +82,7 @@ export function AuthNav({ serverSignedIn = false }: { serverSignedIn?: boolean }
   const [menuOpen, setMenuOpen] = useState(false);
   const [headerDevice, setHeaderDevice] = useState<HeaderDevice>("pc");
   const [smallViewport, setSmallViewport] = useState(false);
+  const [showGuide, setShowGuide] = useState(false);
 
   useEffect(() => {
     function refreshDevice() {
@@ -94,6 +95,7 @@ export function AuthNav({ serverSignedIn = false }: { serverSignedIn?: boolean }
 
     refreshDevice();
     refreshViewport();
+    setShowGuide(localStorage.getItem("resellscore_nav_guide_done") !== "true");
     window.addEventListener("resellscore-device-updated", refreshDevice);
     window.addEventListener("storage", refreshDevice);
     window.addEventListener("resize", refreshViewport);
@@ -175,17 +177,13 @@ export function AuthNav({ serverSignedIn = false }: { serverSignedIn?: boolean }
     window.location.assign("/");
   }
 
+  function closeGuide() {
+    localStorage.setItem("resellscore_nav_guide_done", "true");
+    setShowGuide(false);
+  }
+
   return (
     <div className="relative flex min-w-0 items-center gap-1.5 sm:gap-3">
-      <div className={compactHeader ? "hidden" : "hidden items-center gap-3 xl:flex"}>
-        <Link href={signedIn ? "/analyze" : "/signup"} className="rounded-md bg-accent px-4 py-2 font-semibold text-ink shadow-[0_0_24px_rgba(74,222,128,0.18)]">
-          Analyser
-        </Link>
-        <Link href="/pricing" className="rounded-md border border-white/15 px-4 py-2 font-medium text-white hover:bg-white/10">
-          Tarifs
-        </Link>
-      </div>
-
       <button
         type="button"
         onClick={() => setMenuOpen((value) => !value)}
@@ -199,6 +197,35 @@ export function AuthNav({ serverSignedIn = false }: { serverSignedIn?: boolean }
       >
         {menuOpen ? <X size={19} /> : <MoreHorizontal size={22} />}
       </button>
+
+      {showGuide && !menuOpen && (
+        <div className="fixed inset-x-3 top-16 z-50 rounded-lg border border-accent/30 bg-ink p-3 shadow-glow sm:left-auto sm:right-6 sm:top-20 sm:w-[340px]">
+          <div className="mb-2 flex items-center justify-between gap-3">
+            <p className="text-sm font-black text-white">Petit tuto</p>
+            <button type="button" onClick={closeGuide} className="grid h-7 w-7 place-items-center rounded-full border border-white/10 bg-white/5 text-muted">
+              <X size={14} />
+            </button>
+          </div>
+          <p className="text-sm leading-5 text-muted">
+            Clique sur le bouton <span className="font-black text-accent">...</span> pour ouvrir le menu. Dedans tu as Analyser, Tarifs, Tendances, Pre-achat, Vente, Profil et Deconnexion.
+          </p>
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setMenuOpen(true);
+                closeGuide();
+              }}
+              className="rounded-md bg-accent px-3 py-2 text-sm font-black text-ink"
+            >
+              Voir le menu
+            </button>
+            <button type="button" onClick={closeGuide} className="rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm font-bold text-white">
+              J'ai compris
+            </button>
+          </div>
+        </div>
+      )}
 
       {menuOpen && (
         <div className="fixed inset-x-2 top-16 z-50 grid max-h-[calc(100dvh-76px)] gap-1.5 overflow-y-auto rounded-md border border-white/10 bg-ink p-2 shadow-glow sm:inset-x-4 sm:top-20 sm:max-h-[calc(100dvh-96px)] sm:gap-2 sm:rounded-lg sm:p-3 md:left-auto md:right-6 md:w-[360px]">
@@ -264,51 +291,6 @@ export function AuthNav({ serverSignedIn = false }: { serverSignedIn?: boolean }
         </div>
       )}
 
-      {signedIn ? (
-        <>
-          {user?.isAdmin && !compactHeader && (
-            <Link href="/admin-command" className="hidden items-center gap-2 rounded-md border border-accent/30 bg-accent/10 px-3 py-2 font-bold text-accent hover:bg-accent/15 xl:inline-flex">
-              <KeyRound size={16} />
-              Admin
-            </Link>
-          )}
-          {!compactHeader && <Link href="/profile" className="hidden min-h-10 min-w-10 items-center gap-2 rounded-md border border-white/15 bg-white/10 px-3 py-2 font-medium text-white hover:bg-white/15 xl:flex" aria-label="Profil">
-            {user?.avatar ? (
-              <span className={`relative h-8 w-8 shrink-0 overflow-visible rounded-full border-2 ${badge.ring}`}>
-                {activePlan !== "free" && (
-                  <span className={`absolute -right-1 -top-2 z-10 inline-flex h-4 min-w-4 items-center justify-center rounded-full px-1 ${badge.text}`}>
-                    {badge.icon}
-                  </span>
-                )}
-                <img src={user.avatar} alt="" className="h-full w-full rounded-full object-cover" style={{ transform: `scale(${user.avatarZoom || 1})` }} />
-              </span>
-            ) : (
-              <span className={`relative grid h-8 w-8 shrink-0 place-items-center rounded-full border-2 bg-white/5 ${badge.ring}`}>
-                {activePlan !== "free" && (
-                  <span className={`absolute -right-1 -top-2 z-10 inline-flex h-4 min-w-4 items-center justify-center rounded-full px-1 ${badge.text}`}>
-                    {badge.icon}
-                  </span>
-                )}
-                <UserCircle size={22} className={activePlan === "free" ? "text-stone-300" : "text-accent"} />
-              </span>
-            )}
-            {displayName && <span className="hidden max-w-24 truncate md:inline">{displayName}</span>}
-          </Link>}
-          {!compactHeader && <button
-            type="button"
-            onClick={signOut}
-            className="hidden h-10 w-10 place-items-center rounded-md border border-white/15 bg-white/5 text-white hover:bg-white/10 xl:grid"
-            aria-label="Se deconnecter"
-            title="Se deconnecter"
-          >
-            <LogOut size={17} />
-          </button>}
-        </>
-      ) : (
-        <Link href="/login" className={compactHeader ? "hidden" : "hidden rounded-md bg-white px-4 py-2 font-semibold text-ink xl:inline-flex"}>
-          Connexion
-        </Link>
-      )}
     </div>
   );
 }
