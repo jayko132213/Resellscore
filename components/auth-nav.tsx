@@ -181,33 +181,6 @@ export function AuthNav({ serverSignedIn = false }: { serverSignedIn?: boolean }
         <Link href={signedIn ? "/analyze" : "/signup"} className="rounded-md bg-accent px-4 py-2 font-semibold text-ink shadow-[0_0_24px_rgba(74,222,128,0.18)]">
           Analyser
         </Link>
-        <Link href="/opportunities" className="rounded-md border border-accent/25 px-4 py-2 font-medium text-accent hover:bg-accent/10">
-          <span className="inline-flex items-center gap-2">
-            Tendances
-            <span className="inline-flex items-center gap-1 rounded-full bg-accent px-2 py-0.5 text-[10px] font-black uppercase text-ink">
-              <ArrowUp size={11} />
-              Elite
-            </span>
-          </span>
-        </Link>
-        <Link href="/pre-achat" className="rounded-md border border-white/15 px-4 py-2 font-medium text-white hover:bg-white/10">
-          <span className="inline-flex items-center gap-2">
-            Pre-achat
-            <span className="inline-flex items-center gap-1 rounded-full border border-amber-300/35 bg-amber-400/15 px-2 py-0.5 text-[10px] font-black uppercase text-amber-200">
-              <Star size={11} />
-              Starter+
-            </span>
-          </span>
-        </Link>
-        <Link href="/vente" className="rounded-md border border-white/15 px-4 py-2 font-medium text-white hover:bg-white/10">
-          <span className="inline-flex items-center gap-2">
-            Vente
-            <span className="inline-flex items-center gap-1 rounded-full border border-sky-300/35 bg-sky-400/15 px-2 py-0.5 text-[10px] font-black uppercase text-sky-200">
-              <ShieldCheck size={11} />
-              Pro+
-            </span>
-          </span>
-        </Link>
         <Link href="/pricing" className="rounded-md border border-white/15 px-4 py-2 font-medium text-white hover:bg-white/10">
           Tarifs
         </Link>
@@ -219,7 +192,7 @@ export function AuthNav({ serverSignedIn = false }: { serverSignedIn?: boolean }
         className={
           compactHeader
             ? "inline-grid h-10 w-10 shrink-0 place-items-center rounded-full border border-accent/35 bg-accent/10 text-accent shadow-[0_0_18px_rgba(74,222,128,0.12)] sm:h-11 sm:w-11"
-            : "inline-grid h-11 w-11 shrink-0 place-items-center rounded-full border border-white/15 bg-white/5 text-white shadow-[0_0_18px_rgba(255,255,255,0.05)] hover:bg-white/10 xl:hidden"
+            : "inline-grid h-11 w-11 shrink-0 place-items-center rounded-full border border-white/15 bg-white/5 text-white shadow-[0_0_18px_rgba(255,255,255,0.05)] hover:bg-white/10"
         }
         aria-label={menuOpen ? "Fermer le menu" : "Ouvrir le menu"}
         aria-expanded={menuOpen}
