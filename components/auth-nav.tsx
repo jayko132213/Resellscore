@@ -110,7 +110,7 @@ export function AuthNav({ serverSignedIn = false }: { serverSignedIn?: boolean }
   const mainLinks = [
     { href: signedIn ? "/analyze" : "/signup", label: "Analyser", level: "", icon: null, primary: true },
     { href: "/opportunities", label: "Tendances", level: "Elite", icon: <ArrowUp size={11} /> },
-    { href: "/pre-achat", label: "Pré-achat", level: "Starter+", icon: <Star size={11} /> },
+    { href: "/pre-achat", label: "Pre-achat", level: "Starter+", icon: <Star size={11} /> },
     { href: "/vente", label: "Vente", level: "Pro+", icon: <ShieldCheck size={11} /> },
     { href: "/pricing", label: "Tarifs", level: "", icon: null }
   ];
@@ -128,53 +128,55 @@ export function AuthNav({ serverSignedIn = false }: { serverSignedIn?: boolean }
   }
 
   return (
-    <div className="relative flex items-center gap-2 sm:gap-3">
+    <div className="relative flex min-w-0 items-center gap-2 sm:gap-3">
       <div className="hidden items-center gap-3 xl:flex">
-      <Link href={signedIn ? "/analyze" : "/signup"} className="rounded-md bg-accent px-4 py-2 font-semibold text-ink shadow-[0_0_24px_rgba(74,222,128,0.18)]">
-        Analyser
-      </Link>
-      <Link href="/opportunities" className="rounded-md border border-accent/25 px-4 py-2 font-medium text-accent hover:bg-accent/10">
-        <span className="inline-flex items-center gap-2">
-          Tendances
-          <span className="inline-flex items-center gap-1 rounded-full bg-accent px-2 py-0.5 text-[10px] font-black uppercase text-ink">
-            <ArrowUp size={11} />
-            Elite
+        <Link href={signedIn ? "/analyze" : "/signup"} className="rounded-md bg-accent px-4 py-2 font-semibold text-ink shadow-[0_0_24px_rgba(74,222,128,0.18)]">
+          Analyser
+        </Link>
+        <Link href="/opportunities" className="rounded-md border border-accent/25 px-4 py-2 font-medium text-accent hover:bg-accent/10">
+          <span className="inline-flex items-center gap-2">
+            Tendances
+            <span className="inline-flex items-center gap-1 rounded-full bg-accent px-2 py-0.5 text-[10px] font-black uppercase text-ink">
+              <ArrowUp size={11} />
+              Elite
+            </span>
           </span>
-        </span>
-      </Link>
-      <Link href="/pre-achat" className="rounded-md border border-white/15 px-4 py-2 font-medium text-white hover:bg-white/10">
-        <span className="inline-flex items-center gap-2">
-          Pré-achat
-          <span className="inline-flex items-center gap-1 rounded-full border border-amber-300/35 bg-amber-400/15 px-2 py-0.5 text-[10px] font-black uppercase text-amber-200">
-            <Star size={11} />
-            Starter+
+        </Link>
+        <Link href="/pre-achat" className="rounded-md border border-white/15 px-4 py-2 font-medium text-white hover:bg-white/10">
+          <span className="inline-flex items-center gap-2">
+            Pre-achat
+            <span className="inline-flex items-center gap-1 rounded-full border border-amber-300/35 bg-amber-400/15 px-2 py-0.5 text-[10px] font-black uppercase text-amber-200">
+              <Star size={11} />
+              Starter+
+            </span>
           </span>
-        </span>
-      </Link>
-      <Link href="/vente" className="rounded-md border border-white/15 px-4 py-2 font-medium text-white hover:bg-white/10">
-        <span className="inline-flex items-center gap-2">
-          Vente
-          <span className="inline-flex items-center gap-1 rounded-full border border-sky-300/35 bg-sky-400/15 px-2 py-0.5 text-[10px] font-black uppercase text-sky-200">
-            <ShieldCheck size={11} />
-            Pro+
+        </Link>
+        <Link href="/vente" className="rounded-md border border-white/15 px-4 py-2 font-medium text-white hover:bg-white/10">
+          <span className="inline-flex items-center gap-2">
+            Vente
+            <span className="inline-flex items-center gap-1 rounded-full border border-sky-300/35 bg-sky-400/15 px-2 py-0.5 text-[10px] font-black uppercase text-sky-200">
+              <ShieldCheck size={11} />
+              Pro+
+            </span>
           </span>
-        </span>
-      </Link>
-      <Link href="/pricing" className="rounded-md border border-white/15 px-4 py-2 font-medium text-white hover:bg-white/10">
-        Tarifs
-      </Link>
+        </Link>
+        <Link href="/pricing" className="rounded-md border border-white/15 px-4 py-2 font-medium text-white hover:bg-white/10">
+          Tarifs
+        </Link>
       </div>
+
       <button
         type="button"
         onClick={() => setMenuOpen((value) => !value)}
-        className="inline-grid h-11 w-11 place-items-center rounded-full border border-white/15 bg-white/5 text-white shadow-[0_0_18px_rgba(255,255,255,0.05)] hover:bg-white/10 xl:hidden"
+        className="inline-grid h-11 w-11 shrink-0 place-items-center rounded-full border border-white/15 bg-white/5 text-white shadow-[0_0_18px_rgba(255,255,255,0.05)] hover:bg-white/10 xl:hidden"
         aria-label={menuOpen ? "Fermer le menu" : "Ouvrir le menu"}
         aria-expanded={menuOpen}
       >
         {menuOpen ? <X size={19} /> : <MoreHorizontal size={22} />}
       </button>
+
       {menuOpen && (
-        <div className="absolute right-0 top-[52px] z-50 grid w-[min(92vw,360px)] gap-2 rounded-lg border border-white/10 bg-ink p-3 shadow-glow xl:hidden">
+        <div className="fixed inset-x-4 top-20 z-50 grid max-h-[calc(100dvh-96px)] gap-2 overflow-y-auto rounded-lg border border-white/10 bg-ink p-3 shadow-glow sm:left-auto sm:right-6 sm:w-[360px] xl:hidden">
           <p className="px-2 pb-1 text-xs font-bold uppercase tracking-wide text-muted">Navigation</p>
           {mainLinks.map((item) => (
             <Link
@@ -221,7 +223,7 @@ export function AuthNav({ serverSignedIn = false }: { serverSignedIn?: boolean }
               onClick={signOut}
               className="flex min-h-12 items-center justify-between gap-3 rounded-md border border-white/10 bg-white/[0.04] px-4 py-3 text-left font-semibold text-white"
             >
-              <span>Se déconnecter</span>
+              <span>Se deconnecter</span>
               <LogOut size={17} />
             </button>
           )}
@@ -236,6 +238,7 @@ export function AuthNav({ serverSignedIn = false }: { serverSignedIn?: boolean }
           )}
         </div>
       )}
+
       {signedIn ? (
         <>
           {user?.isAdmin && (
@@ -244,18 +247,18 @@ export function AuthNav({ serverSignedIn = false }: { serverSignedIn?: boolean }
               Admin
             </Link>
           )}
-          <Link href="/profile" className="flex min-h-10 items-center gap-2 rounded-md border border-white/15 bg-white/10 px-2 py-2 font-medium text-white hover:bg-white/15 sm:px-3" aria-label="Profil">
+          <Link href="/profile" className="flex min-h-10 min-w-10 items-center gap-2 rounded-md border border-white/15 bg-white/10 px-1.5 py-2 font-medium text-white hover:bg-white/15 sm:px-3" aria-label="Profil">
             {user?.avatar ? (
-              <span className={`relative h-8 w-8 overflow-visible rounded-full border-2 ${badge.ring}`}>
+              <span className={`relative h-8 w-8 shrink-0 overflow-visible rounded-full border-2 ${badge.ring}`}>
                 {activePlan !== "free" && (
                   <span className={`absolute -right-1 -top-2 z-10 inline-flex h-4 min-w-4 items-center justify-center rounded-full px-1 ${badge.text}`}>
                     {badge.icon}
                   </span>
                 )}
-                <img src={user.avatar} alt="" className="h-full w-full object-cover" style={{ transform: `scale(${user.avatarZoom || 1})` }} />
+                <img src={user.avatar} alt="" className="h-full w-full rounded-full object-cover" style={{ transform: `scale(${user.avatarZoom || 1})` }} />
               </span>
             ) : (
-              <span className={`relative grid h-8 w-8 place-items-center rounded-full border-2 bg-white/5 ${badge.ring}`}>
+              <span className={`relative grid h-8 w-8 shrink-0 place-items-center rounded-full border-2 bg-white/5 ${badge.ring}`}>
                 {activePlan !== "free" && (
                   <span className={`absolute -right-1 -top-2 z-10 inline-flex h-4 min-w-4 items-center justify-center rounded-full px-1 ${badge.text}`}>
                     {badge.icon}
@@ -264,7 +267,7 @@ export function AuthNav({ serverSignedIn = false }: { serverSignedIn?: boolean }
                 <UserCircle size={22} className={activePlan === "free" ? "text-stone-300" : "text-accent"} />
               </span>
             )}
-            {displayName && <span className="hidden max-w-24 truncate sm:inline">{displayName}</span>}
+            {displayName && <span className="hidden max-w-24 truncate md:inline">{displayName}</span>}
           </Link>
           <button
             type="button"
@@ -277,7 +280,7 @@ export function AuthNav({ serverSignedIn = false }: { serverSignedIn?: boolean }
           </button>
         </>
       ) : (
-        <Link href="/login" className="rounded-md bg-white px-4 py-2 font-semibold text-ink">
+        <Link href="/login" className="rounded-md bg-white px-3 py-2 font-semibold text-ink sm:px-4">
           Connexion
         </Link>
       )}
