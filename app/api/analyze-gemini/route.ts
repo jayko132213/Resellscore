@@ -49,8 +49,9 @@ export async function POST(request: Request) {
     const scraped = await readVintedListing(parsed.data.vintedUrl);
     const urlTitle = titleFromVintedUrl(parsed.data.vintedUrl);
     const correctedProduct = parsed.data.productCorrection?.trim();
-    const mergedTitle = correctedProduct || scraped?.title || (parsed.data.title === "Article Vinted a analyser" ? urlTitle : parsed.data.title) || urlTitle || "Article Vinted a analyser";
-    const mergedDescription = [correctedProduct ? `Correction utilisateur sur le produit exact: ${correctedProduct}` : "", scraped?.description, parsed.data.description, scraped?.rawText ? `Infos Vinted lues: ${scraped.rawText.slice(0, 1200)}` : ""]
+    const formProduct = parsed.data.title !== "Article Vinted a analyser" && parsed.data.title !== "Article Vinted à analyser" ? parsed.data.title : "";
+    const mergedTitle = correctedProduct || formProduct || scraped?.title || urlTitle || "Article Vinted a analyser";
+    const mergedDescription = [correctedProduct ? `Correction utilisateur sur le produit exact: ${correctedProduct}` : "", !correctedProduct && formProduct ? `Produit confirme par l'utilisateur: ${formProduct}` : "", scraped?.description, parsed.data.description, scraped?.rawText ? `Infos Vinted lues: ${scraped.rawText.slice(0, 1200)}` : ""]
       .filter(Boolean)
       .join("\n\n")
       .trim() || "Analyse demandee a partir des infos fournies.";

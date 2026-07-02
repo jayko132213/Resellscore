@@ -26,6 +26,10 @@ const marketProfiles = [
   { match: ["4090", "rtx4090", "rtx 4090", "geforce 4090"], brand: "NVIDIA GeForce RTX 4090", category: "Carte graphique", retail: 1750, vinted: 1450, demand: 9.3 },
   { match: ["5080", "rtx5080", "rtx 5080"], brand: "NVIDIA GeForce RTX 5080", category: "Carte graphique", retail: 1150, vinted: 1050, demand: 8.7 },
   { match: ["iphone 15", "iphone15"], brand: "Apple iPhone 15", category: "Smartphone", retail: 749, vinted: 520, demand: 8.2 },
+  { match: ["manchester united", "man utd", "maillot manchester", "jersey manchester"], brand: "Adidas / Manchester United", category: "Maillot de foot", retail: 95, vinted: 44, demand: 8.4 },
+  { match: ["psg", "paris saint germain", "maillot paris"], brand: "Nike / PSG", category: "Maillot de foot", retail: 95, vinted: 46, demand: 8.6 },
+  { match: ["inter milan", "internazionale", "maillot inter"], brand: "Nike / Inter Milan", category: "Maillot de foot", retail: 95, vinted: 43, demand: 8.2 },
+  { match: ["maillot de foot", "maillot foot", "football jersey", "soccer jersey"], brand: "Maillot de foot", category: "Maillot de foot", retail: 90, vinted: 40, demand: 8.0 },
   { match: ["ralph", "lauren", "polo"], brand: "Ralph Lauren", category: "Pull / maille", retail: 149, vinted: 42, demand: 8.4 },
   { match: ["lacoste"], brand: "Lacoste", category: "Pull / polo", retail: 120, vinted: 38, demand: 7.7 },
   { match: ["carhartt", "detroit"], brand: "Carhartt", category: "Veste workwear", retail: 159, vinted: 78, demand: 9.1 },
@@ -34,7 +38,7 @@ const marketProfiles = [
   { match: ["adidas"], brand: "Adidas", category: "Sportswear vintage", retail: 85, vinted: 34, demand: 7.9 },
   { match: ["levis", "levi", "501"], brand: "Levi's", category: "Denim", retail: 110, vinted: 46, demand: 8.1 },
   { match: ["stone", "island"], brand: "Stone Island", category: "Premium streetwear", retail: 260, vinted: 145, demand: 8.8 },
-  { match: ["arcteryx", "arc", "teryx"], brand: "Arc'teryx", category: "Outdoor technique", retail: 320, vinted: 170, demand: 9.4 }
+  { match: ["arcteryx", "arc'teryx", "arc teryx"], brand: "Arc'teryx", category: "Outdoor technique", retail: 320, vinted: 170, demand: 9.4 }
 ];
 
 function hashText(value: string) {
@@ -51,7 +55,8 @@ function demandLabel(score: number): "faible" | "moyenne" | "forte" | "très for
 function extractPriceFromText(text: string) {
   const euroMatch = text.match(/(?:prix|price|eur|€)\s*[:\-]?\s*(\d{2,5})|(\d{2,5})\s*(?:eur|€)/i);
   if (!euroMatch) return 0;
-  return Number(euroMatch[1] || euroMatch[2] || 0);
+  const price = Number(euroMatch[1] || euroMatch[2] || 0);
+  return price > 0 && price <= 5000 ? price : 0;
 }
 
 function conditionScoreFromText(text: string) {
@@ -77,6 +82,7 @@ function priceScoreFromMarket(sellerPrice: number, marketPrice: number) {
 }
 
 function productCategoryFromText(text: string) {
+  if (/maillot|football jersey|soccer jersey|psg|manchester united|man utd|inter milan|internazionale/.test(text)) return "Maillot de foot";
   if (/short|bermuda/.test(text)) return "Short";
   if (/t[\s-]?shirt|tee shirt|tee|debardeur|débardeur/.test(text)) return "T-shirt / haut leger";
   if (/polo/.test(text)) return "Polo";
@@ -190,7 +196,9 @@ function fallbackAnalysis(input: AnalysisInput): AnalysisResult {
   const market = detectMarket(input);
   const fullText = [input.vintedUrl, input.title, input.description, input.brand, input.condition, input.sourceListing?.rawText].filter(Boolean).join(" ");
   const extractedPrice = extractPriceFromText(fullText);
-  const sellerPrice = input.sellerPrice > 1 ? input.sellerPrice : input.sourceListing?.sellerPrice || extractedPrice || Math.round(market.vinted * 0.72);
+  const extractedLooksWrong = extractedPrice > Math.max(500, market.retail * 4);
+  const safeExtractedPrice = extractedLooksWrong ? 0 : extractedPrice;
+  const sellerPrice = input.sourceListing?.sellerPrice || (input.sellerPrice > 1 ? input.sellerPrice : safeExtractedPrice || Math.round(market.vinted * 0.72));
   const condition = (input.condition || input.sourceListing?.condition || "").toLowerCase();
   const resale = Math.round(market.vinted * (input.vintedUrl ? 1.08 : input.photoCount > 0 ? 1 : 0.92));
   const margin = resale - sellerPrice;

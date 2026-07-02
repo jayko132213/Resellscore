@@ -11,6 +11,14 @@ import { Button } from "./ui/button";
 
 type AnalyzeMode = "link" | "photo" | "manual";
 type Precision = "haute" | "moyenne" | "basse";
+type LinkPreview = {
+  productGuess: string;
+  title: string;
+  sellerPrice: number;
+  brand: string;
+  condition: string;
+  confidence: "faible" | "moyenne" | "haute";
+};
 
 const marketProfiles = [
   { match: ["5090", "rtx5090", "rtx 5090", "geforce 5090"], brand: "NVIDIA GeForce RTX 5090", category: "Carte graphique", retail: 2300, vinted: 2600, demand: 9.8 },
@@ -328,6 +336,10 @@ export function AnalyzeForm({
   const [productConfirmed, setProductConfirmed] = useState(false);
   const [needsCorrection, setNeedsCorrection] = useState(false);
   const [productCorrection, setProductCorrection] = useState("");
+  const [linkUrl, setLinkUrl] = useState("");
+  const [linkPreview, setLinkPreview] = useState<LinkPreview | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewError, setPreviewError] = useState("");
 
   useEffect(() => {
     fetch("/api/ai/status", { cache: "no-store" })
@@ -339,6 +351,45 @@ export function AnalyzeForm({
         setAiReady(false);
       });
   }, []);
+
+  async function previewVintedLink() {
+    const vintedUrl = linkUrl.trim();
+    setPreviewError("");
+    setLinkPreview(null);
+    setProductConfirmed(false);
+    setNeedsCorrection(false);
+    setProductCorrection("");
+
+    if (!vintedUrl) {
+      setPreviewError("Colle d'abord un lien Vinted.");
+      return;
+    }
+    if (!isVintedUrl(vintedUrl)) {
+      setPreviewError("Le lien doit venir de Vinted.");
+      return;
+    }
+
+    setPreviewLoading(true);
+    try {
+      const response = await fetch("/api/vinted/preview", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ vintedUrl })
+      });
+      const json = await readJsonResponse(response);
+      if (!response.ok) throw new Error(json.error || "Lecture du lien impossible.");
+      const preview = json.preview as LinkPreview;
+      setLinkPreview(preview);
+      setLinkProductGuess(preview.productGuess || preview.title || productGuessFromVintedUrl(vintedUrl));
+    } catch (err) {
+      const fallbackGuess = productGuessFromVintedUrl(vintedUrl);
+      setLinkProductGuess(fallbackGuess);
+      setNeedsCorrection(true);
+      setPreviewError(err instanceof Error ? err.message : "Lecture du lien impossible.");
+    } finally {
+      setPreviewLoading(false);
+    }
+  }
 
   async function onSubmit(formData: FormData) {
     setLoading(true);
@@ -356,7 +407,7 @@ export function AnalyzeForm({
       if (vintedUrl && !isVintedUrl(vintedUrl)) throw new Error("Le lien doit venir de Vinted. Sinon choisis Photo/Capture ou Manuel.");
       if (mode === "photo" && productPhotos.length === 0 && screenshots.length === 0) throw new Error("Ajoute une photo du produit ou une capture de l'annonce.");
       if (mode === "manual" && !hasManualInfo) throw new Error("Ajoute au minimum un titre et un prix vendeur.");
-      if (mode === "link" && linkProductGuess && !productConfirmed && !productCorrection.trim()) {
+      if (mode === "link" && !productConfirmed && !productCorrection.trim()) {
         throw new Error("Confirme le produit détecté ou corrige-le avant de lancer l'analyse.");
       }
 
@@ -445,9 +496,13 @@ export function AnalyzeForm({
                 type="url"
                 placeholder="https://www.vinted.fr/items/..."
                 required
+                value={linkUrl}
                 onChange={(event) => {
+                  setLinkUrl(event.target.value);
                   const nextGuess = productGuessFromVintedUrl(event.target.value);
                   setLinkProductGuess(nextGuess);
+                  setLinkPreview(null);
+                  setPreviewError("");
                   setProductConfirmed(false);
                   setNeedsCorrection(false);
                   setProductCorrection("");
@@ -455,12 +510,34 @@ export function AnalyzeForm({
                 className="rounded-md border border-white/10 bg-white/5 px-3 py-3 outline-none focus:border-accent"
               />
             </label>
+            <button
+              type="button"
+              onClick={previewVintedLink}
+              disabled={previewLoading}
+              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-accent/30 bg-accent/10 px-3 text-sm font-black text-accent hover:bg-accent/15 disabled:opacity-60"
+            >
+              {previewLoading ? <Loader2 size={16} className="animate-spin" /> : <Link2 size={16} />}
+              {previewLoading ? "Lecture du lien..." : "Lire le lien et détecter le produit"}
+            </button>
             <input type="hidden" name="title" value={productCorrection.trim() || linkProductGuess || "Article Vinted à analyser"} />
             <input type="hidden" name="productCorrection" value={productCorrection.trim()} />
+            {previewError && (
+              <p className="rounded-md border border-amber-300/20 bg-amber-400/10 p-3 text-sm leading-6 text-amber-100">
+                {previewError} Corrige le produit exact si le titre du lien n'est pas assez clair.
+              </p>
+            )}
             {linkProductGuess && (
               <div className="rounded-md border border-accent/25 bg-accent/10 p-4">
                 <p className="text-xs font-black uppercase tracking-wide text-accent">Produit détecté</p>
                 <p className="mt-2 text-lg font-black text-white">{linkProductGuess}</p>
+                {linkPreview && (
+                  <div className="mt-3 grid gap-2 text-sm text-muted sm:grid-cols-2">
+                    <span>Prix lu : <strong className="text-white">{linkPreview.sellerPrice ? `${linkPreview.sellerPrice} €` : "non lu"}</strong></span>
+                    <span>Marque : <strong className="text-white">{linkPreview.brand || "non lue"}</strong></span>
+                    <span>État : <strong className="text-white">{linkPreview.condition || "non lu"}</strong></span>
+                    <span>Confiance : <strong className="text-white">{linkPreview.confidence}</strong></span>
+                  </div>
+                )}
                 <p className="mt-1 text-sm leading-6 text-muted">
                   C'est bien ça ? Si le titre Vinted est flou, corrige le produit exact pour une recherche beaucoup plus précise.
                 </p>

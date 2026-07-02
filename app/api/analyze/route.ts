@@ -48,9 +48,11 @@ export async function POST(request: Request) {
   const input = parsed.data;
   const sourceListing = await readVintedListing(input.vintedUrl);
   const correctedProduct = input.productCorrection?.trim();
-  const mergedTitle = correctedProduct || sourceListing?.title || input.title;
+  const formProduct = input.title !== "Article Vinted à analyser" && input.title !== "Article Vinted a analyser" ? input.title : "";
+  const mergedTitle = correctedProduct || formProduct || sourceListing?.title || input.title;
   const mergedDescription = [
     correctedProduct ? `Correction utilisateur sur le produit exact: ${correctedProduct}` : "",
+    !correctedProduct && formProduct ? `Produit confirme par l'utilisateur: ${formProduct}` : "",
     sourceListing?.description,
     input.description,
     sourceListing?.rawText ? `Infos Vinted lues: ${sourceListing.rawText.slice(0, 1200)}` : ""

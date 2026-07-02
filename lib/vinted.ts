@@ -10,6 +10,11 @@ export type VintedListingSnapshot = {
   fetched: boolean;
 };
 
+export type VintedProductPreview = VintedListingSnapshot & {
+  productGuess: string;
+  confidence: "faible" | "moyenne" | "haute";
+};
+
 export function isVintedUrl(value?: string | null) {
   if (!value) return true;
   try {
@@ -70,7 +75,8 @@ function extractMeta(html: string, property: string) {
 function extractFirstNumber(value: string) {
   const match = value.match(/(\d{1,5})(?:[,.](\d{1,2}))?/);
   if (!match) return 0;
-  return Math.round(Number(`${match[1]}.${match[2] || "0"}`));
+  const price = Math.round(Number(`${match[1]}.${match[2] || "0"}`));
+  return price > 0 && price <= 5000 ? price : 0;
 }
 
 function extractPriceFromText(text: string) {
@@ -94,6 +100,47 @@ function guessBrandFromText(text: string) {
   ];
   const lowered = text.toLowerCase();
   return brands.find((brand) => lowered.includes(brand.toLowerCase().replace("'", "")) || lowered.includes(brand.toLowerCase())) || "";
+}
+
+function guessFootballProduct(text: string) {
+  const lowered = text.toLowerCase();
+  if (!/maillot|football|soccer|jersey|psg|manchester|inter milan|internazionale/.test(lowered)) return "";
+
+  const clubs = [
+    { match: /manchester united|man utd/, name: "Manchester United" },
+    { match: /psg|paris saint[-\s]?germain/, name: "PSG" },
+    { match: /inter milan|internazionale/, name: "Inter Milan" },
+    { match: /real madrid/, name: "Real Madrid" },
+    { match: /barcelone|barcelona|fc barca|barça/, name: "FC Barcelone" },
+    { match: /marseille|om olympique/, name: "Olympique de Marseille" },
+    { match: /arsenal/, name: "Arsenal" },
+    { match: /chelsea/, name: "Chelsea" },
+    { match: /milan ac|ac milan/, name: "AC Milan" }
+  ];
+  const club = clubs.find((item) => item.match.test(lowered))?.name;
+  const brand = /nike/.test(lowered) ? "Nike" : /adidas/.test(lowered) ? "Adidas" : /puma/.test(lowered) ? "Puma" : "";
+  const season = lowered.match(/\b(19|20)\d{2}\s*[-/]\s*(\d{2}|\d{4})\b/)?.[0]?.replace(/\s+/g, "") || "";
+  const size = lowered.match(/\btaille\s*(xs|s|m|l|xl|xxl|\d{2,3})\b/i)?.[0]?.replace(/\s+/g, " ") || "";
+
+  return ["maillot", club, brand, season, size].filter(Boolean).join(" ");
+}
+
+export function buildProductPreview(listing: VintedListingSnapshot): VintedProductPreview {
+  const text = [listing.title, listing.description, listing.rawText].filter(Boolean).join(" ");
+  const football = guessFootballProduct(text);
+  const cleanTitle = listing.title || titleFromVintedUrl(listing.url);
+  const productGuess = football || cleanTitle || "Produit Vinted";
+  const confidence = listing.fetched && listing.sellerPrice > 0 && productGuess !== "Produit Vinted"
+    ? "haute"
+    : listing.fetched || productGuess !== "Produit Vinted"
+      ? "moyenne"
+      : "faible";
+
+  return {
+    ...listing,
+    productGuess,
+    confidence
+  };
 }
 
 function guessConditionFromText(text: string) {
