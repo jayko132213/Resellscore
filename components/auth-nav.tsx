@@ -61,6 +61,11 @@ function planBadge(plan: PlanKey) {
 
 function detectHeaderDevice(): HeaderDevice {
   if (typeof navigator === "undefined") return "pc";
+  const forcedDevice = localStorage.getItem("resellscore_device_type");
+  if (forcedDevice === "iphone" || forcedDevice === "samsung" || forcedDevice === "android" || forcedDevice === "pc") {
+    return forcedDevice;
+  }
+
   const userAgent = navigator.userAgent.toLowerCase();
   const platform = navigator.platform?.toLowerCase() || "";
   const touchDevice = typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches;
@@ -78,7 +83,13 @@ export function AuthNav({ serverSignedIn = false }: { serverSignedIn?: boolean }
   const [headerDevice, setHeaderDevice] = useState<HeaderDevice>("pc");
 
   useEffect(() => {
-    setHeaderDevice(detectHeaderDevice());
+    function refreshDevice() {
+      setHeaderDevice(detectHeaderDevice());
+    }
+
+    refreshDevice();
+    window.addEventListener("resellscore-device-updated", refreshDevice);
+    window.addEventListener("storage", refreshDevice);
 
     function loadDemoUser() {
       const stored = localStorage.getItem("resellscore_demo_user");
@@ -96,7 +107,9 @@ export function AuthNav({ serverSignedIn = false }: { serverSignedIn?: boolean }
       window.addEventListener("storage", loadDemoUser);
       return () => {
         window.removeEventListener("resellscore-user-updated", loadDemoUser);
+        window.removeEventListener("resellscore-device-updated", refreshDevice);
         window.removeEventListener("storage", loadDemoUser);
+        window.removeEventListener("storage", refreshDevice);
       };
     }
 
@@ -119,6 +132,11 @@ export function AuthNav({ serverSignedIn = false }: { serverSignedIn?: boolean }
           .catch(() => {});
       }
     });
+
+    return () => {
+      window.removeEventListener("resellscore-device-updated", refreshDevice);
+      window.removeEventListener("storage", refreshDevice);
+    };
   }, []);
 
   const displayName = user?.pseudo?.trim() || "";
