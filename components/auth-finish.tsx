@@ -24,6 +24,7 @@ export function AuthFinish() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [message, setMessage] = useState("Connexion Google en cours...");
+  const [done, setDone] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -54,7 +55,13 @@ export function AuthFinish() {
         return;
       }
 
-      router.replace(next.startsWith("/") ? next : "/analyze");
+      setDone(true);
+      setMessage("Connexion reussie. Bienvenue sur ResellScore.");
+      window.setTimeout(() => {
+        const target = new URL(next.startsWith("/") ? next : "/analyze", window.location.origin);
+        target.searchParams.set("connected", "google");
+        router.replace(`${target.pathname}${target.search}`);
+      }, 900);
     }
 
     finishLogin();
@@ -66,10 +73,14 @@ export function AuthFinish() {
   return (
     <main className="shell grid min-h-[60vh] place-items-center py-16">
       <div className="w-full max-w-md rounded-lg border border-accent/20 bg-panel p-6 text-center shadow-glow">
-        <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-accent/10 text-accent">
-          <Loader2 size={28} className="animate-spin" />
+        <div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-accent/10 text-accent shadow-[0_0_34px_rgba(74,222,128,0.28)]">
+          {done ? (
+            <span className="text-3xl font-black">✓</span>
+          ) : (
+            <Loader2 size={30} className="animate-spin" />
+          )}
         </div>
-        <h1 className="mt-5 text-2xl font-black text-white">Connexion</h1>
+        <h1 className="mt-5 text-2xl font-black text-white">{done ? "Connecté" : "Connexion"}</h1>
         <p className="mt-2 text-sm leading-6 text-muted">{message}</p>
       </div>
     </main>

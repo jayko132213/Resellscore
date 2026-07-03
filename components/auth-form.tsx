@@ -106,14 +106,22 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
   const [resetSent, setResetSent] = useState(false);
 
   useEffect(() => {
-    setCallbackError(new URLSearchParams(window.location.search).has("error"));
+    const hasCallbackError = new URLSearchParams(window.location.search).has("error");
+    setCallbackError(hasCallbackError);
+    if (hasCallbackError && !isDemoMode()) {
+      createSupabaseBrowserClient().auth.getUser().then(({ data }) => {
+        if (data.user) {
+          router.replace("/analyze?connected=google");
+        }
+      }).catch(() => {});
+    }
     const stored = localStorage.getItem("resellscore_device_choice");
     if (stored === "iphone" || stored === "samsung" || stored === "pc") {
       setDeviceChoice(stored);
     } else if (stored === "auto") {
       setDeviceChoice(resolveDevice("auto").type === "pc" ? "pc" : "iphone");
     }
-  }, []);
+  }, [router]);
 
   const callbackUrl = typeof window === "undefined" ? "" : `${window.location.origin}/auth/callback`;
 
