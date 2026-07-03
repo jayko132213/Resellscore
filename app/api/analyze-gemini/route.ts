@@ -82,7 +82,13 @@ export async function POST(request: Request) {
       photoCount: images.length,
       images,
       sourceListing: scraped
-    });
+    }, { allowFallback: !hasScreenshotMode });
+
+    if (hasScreenshotMode && /capture_invalide/i.test(result.summary || "")) {
+      return NextResponse.json({
+        error: "Capture refusée : ce n'est pas une annonce Vinted/marketplace exploitable. Envoie une capture complète où l'on voit le produit, le prix, le titre et le texte de l'annonce."
+      }, { status: 422 });
+    }
 
     return NextResponse.json({ result, poweredBy: provider });
   } catch (error) {

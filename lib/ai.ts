@@ -28,6 +28,10 @@ type AnalysisInput = {
   sourceListing?: VintedListingSnapshot | null;
 };
 
+type RunAnalysisOptions = {
+  allowFallback?: boolean;
+};
+
 const marketProfiles = [
   { match: ["5090", "rtx5090", "rtx 5090", "geforce 5090"], brand: "NVIDIA GeForce RTX 5090", category: "Carte graphique", retail: 2300, vinted: 2600, demand: 9.8 },
   { match: ["4090", "rtx4090", "rtx 4090", "geforce 4090"], brand: "NVIDIA GeForce RTX 4090", category: "Carte graphique", retail: 1750, vinted: 1450, demand: 9.3 },
@@ -307,8 +311,9 @@ Infos lues depuis la page Vinted:
 Tu analyses une annonce Vinted/vintage pour un revendeur. Réponds uniquement en JSON valide.
 Si des infos Vinted sont fournies ci-dessous, utilise-les comme source prioritaire. Ne remplace pas le prix de l'annonce par une estimation.
 Ne prétends pas avoir consulté une boutique officielle si tu ne l'as pas fait : estime le prix neuf prudemment avec ta connaissance produit.
-Si des images sont fournies, lis-les vraiment : produit, marque visible, état, défauts, prix affiché sur capture, accessoires, texte vendeur.
-Si tu vois un défaut possible sur une image mais que ce n'est pas certain, formule-le comme incertain. Ne transforme jamais un doute visuel en certitude.
+  Si des images sont fournies, lis-les vraiment : produit, marque visible, état, défauts, prix affiché sur capture, accessoires, texte vendeur.
+  Si les images ne montrent pas une vraie annonce marketplace/Vinted exploitable, ne fais aucune estimation. Dans ce cas, mets "CAPTURE_INVALIDE" au tout debut du summary et explique qu'il faut une capture d'annonce complete.
+  Si tu vois un défaut possible sur une image mais que ce n'est pas certain, formule-le comme incertain. Ne transforme jamais un doute visuel en certitude.
 Si la capture montre une annonce, lis le prix, le titre, l'état, la taille, la marque, la description et les photos visibles avant de noter.
 Si tu ne peux pas lire une info, dis que la confiance est plus faible au lieu d'inventer.
 
@@ -453,7 +458,7 @@ async function runOpenAiAnalysis(input: AnalysisInput): Promise<AnalysisResult> 
       Authorization: `Bearer ${apiKey}`
     },
     body: JSON.stringify({
-      model: process.env.OPENAI_MODEL || "gpt-4o-mini",
+      model: "gpt-4o-mini",
       response_format: { type: "json_object" },
       messages: [
         {
@@ -502,7 +507,14 @@ async function runOpenAiVisionCheck(images: NonNullable<AnalysisInput["images"]>
     })
   });
 
-  if (!response.ok) return { valid: false, productGuess: "", reason: "Controle visuel impossible. Reessaie avec une capture plus nette.", confidence: "faible" };
+  if (!response.ok) {
+    return {
+      valid: true,
+      productGuess: "",
+      reason: "Controle visuel technique indisponible. Analyse principale autorisee, sans fallback automatique.",
+      confidence: "faible"
+    };
+  }
   const json = await response.json();
   const text = String(json.choices?.[0]?.message?.content || "").replace(/```json|```/g, "").trim();
   return hardenVisionCheck(JSON.parse(text) as VisionListingCheck);
@@ -562,18 +574,31 @@ export async function validateListingImages(images: NonNullable<AnalysisInput["i
     if (provider === "openai") return await runOpenAiVisionCheck(images);
     if (provider === "gemini") return await runGeminiVisionCheck(images);
   } catch {
-    return { valid: false, productGuess: "", reason: "Controle visuel incertain. Reessaie avec une capture complete et lisible de l'annonce.", confidence: "faible" };
+    return {
+      valid: true,
+      productGuess: "",
+      reason: "Controle visuel technique incertain. Analyse principale autorisee, sans fallback automatique.",
+      confidence: "faible"
+    };
   }
 
-  return { valid: false, productGuess: "", reason: "Controle visuel indisponible. Reessaie plus tard ou utilise un lien Vinted.", confidence: "faible" };
+  return {
+    valid: true,
+    productGuess: "",
+    reason: "Controle visuel indisponible. Analyse principale autorisee, sans fallback automatique.",
+    confidence: "faible"
+  };
 }
 
-export async function runListingAnalysis(input: AnalysisInput): Promise<AnalysisResult> {
+export async function runListingAnalysis(input: AnalysisInput, options: RunAnalysisOptions = {}): Promise<AnalysisResult> {
   const provider = getConfiguredAiProvider();
   try {
     if (provider === "openai") return await runOpenAiAnalysis(input);
     if (provider === "gemini") return await runGeminiAnalysis(input);
   } catch (error) {
+    if (options.allowFallback === false) {
+      throw error;
+    }
     const fallback = fallbackAnalysis(input);
     return {
       ...fallback,
