@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowUp, Crown, KeyRound, LogOut, MessageSquare, MoreHorizontal, Settings, ShieldCheck, Star, UserCircle, X } from "lucide-react";
+import { ArrowUp, BarChart3, Crown, KeyRound, LogIn, LogOut, MessageSquare, MoreHorizontal, SearchCheck, Settings, ShieldCheck, ShoppingBag, Sparkles, Star, Tags, UserCircle, X } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { normalizePlan, type PlanKey } from "@/lib/plans";
 import { cn } from "@/lib/utils";
@@ -167,11 +167,11 @@ export function AuthNav({ serverSignedIn = false }: { serverSignedIn?: boolean }
   const shortName = displayName || user?.email?.split("@")[0] || "Profil";
   const compactHeader = headerDevice !== "pc" || smallViewport;
   const mainLinks = [
-    { href: signedIn ? "/analyze" : "/signup", label: "Analyser", level: "", icon: null, primary: true },
-    { href: "/opportunities", label: "Tendances", level: "Elite", icon: <ArrowUp size={11} /> },
-    { href: "/pre-achat", label: "Pre-achat", level: "Starter+", icon: <Star size={11} /> },
-    { href: "/vente", label: "Vente", level: "Pro+", icon: <ShieldCheck size={11} /> },
-    { href: "/pricing", label: "Tarifs", level: "", icon: null },
+    { href: signedIn ? "/analyze" : "/signup", label: "Analyser", level: "", icon: <SearchCheck size={17} />, primary: true },
+    { href: "/opportunities", label: "Tendances", level: "Elite", icon: <ArrowUp size={15} /> },
+    { href: "/pre-achat", label: "Pre-achat", level: "Starter+", icon: <Sparkles size={15} /> },
+    { href: "/vente", label: "Vente", level: "Pro+", icon: <ShoppingBag size={15} /> },
+    { href: "/pricing", label: "Tarifs", level: "", icon: <Tags size={15} /> },
     { href: "/avis", label: "Avis", level: "", icon: <MessageSquare size={15} /> },
     { href: "/parametres", label: "Paramètres", level: "", icon: <Settings size={15} /> }
   ];
@@ -289,7 +289,13 @@ export function AuthNav({ serverSignedIn = false }: { serverSignedIn?: boolean }
 
       {menuOpen && (
         <div className="fixed inset-x-2 top-16 z-50 grid max-h-[calc(100dvh-76px)] gap-1.5 overflow-y-auto rounded-md border border-white/10 bg-ink p-2 shadow-glow sm:inset-x-4 sm:top-20 sm:max-h-[calc(100dvh-96px)] sm:gap-2 sm:rounded-lg sm:p-3 md:left-auto md:right-6 md:w-[360px]">
-          <p className="px-2 pb-1 text-[11px] font-bold uppercase tracking-wide text-muted sm:text-xs">Navigation</p>
+          <div className="flex items-center justify-between gap-3 px-2 pb-1">
+            <p className="text-[11px] font-bold uppercase tracking-wide text-muted sm:text-xs">Navigation</p>
+            <span className="inline-flex items-center gap-1 rounded-full border border-accent/20 bg-accent/10 px-2 py-1 text-[10px] font-black text-accent">
+              <BarChart3 size={12} />
+              ResellScore
+            </span>
+          </div>
           {mainLinks.map((item) => (
             <Link
               key={item.href}
@@ -300,7 +306,12 @@ export function AuthNav({ serverSignedIn = false }: { serverSignedIn?: boolean }
               }`}
             >
               <span className="inline-flex items-center gap-2">
-                {!item.level && item.icon}
+                <span className={cn(
+                  "grid h-8 w-8 shrink-0 place-items-center rounded-md",
+                  item.primary ? "bg-ink/15 text-ink" : "border border-white/10 bg-white/5 text-accent"
+                )}>
+                  {item.icon}
+                </span>
                 {item.label}
               </span>
               {item.level && (
@@ -318,7 +329,9 @@ export function AuthNav({ serverSignedIn = false }: { serverSignedIn?: boolean }
               className="flex min-h-10 items-center justify-between gap-2 rounded-md border border-accent/30 bg-accent/10 px-3 py-2.5 text-sm font-bold text-accent sm:min-h-12 sm:gap-3 sm:px-4 sm:py-3 sm:text-base"
             >
               <span>Admin</span>
-              <KeyRound size={16} />
+              <span className="grid h-8 w-8 place-items-center rounded-md border border-accent/25 bg-accent/10">
+                <KeyRound size={16} />
+              </span>
             </Link>
           )}
           <div className="my-1 h-px bg-white/10" />
@@ -329,7 +342,9 @@ export function AuthNav({ serverSignedIn = false }: { serverSignedIn?: boolean }
               className="flex min-h-10 items-center justify-between gap-2 rounded-md border border-white/10 bg-white/[0.04] px-3 py-2.5 text-sm font-semibold text-white sm:min-h-12 sm:gap-3 sm:px-4 sm:py-3 sm:text-base"
             >
               <span>Profil</span>
-              <UserCircle size={17} />
+              <span className="grid h-8 w-8 place-items-center rounded-md border border-white/10 bg-white/5 text-accent">
+                <UserCircle size={17} />
+              </span>
             </Link>
           )}
           {signedIn && (
@@ -339,7 +354,9 @@ export function AuthNav({ serverSignedIn = false }: { serverSignedIn?: boolean }
               className="flex min-h-10 items-center justify-between gap-2 rounded-md border border-white/10 bg-white/[0.04] px-3 py-2.5 text-left text-sm font-semibold text-white sm:min-h-12 sm:gap-3 sm:px-4 sm:py-3 sm:text-base"
             >
               <span>Se deconnecter</span>
-              <LogOut size={17} />
+              <span className="grid h-8 w-8 place-items-center rounded-md border border-white/10 bg-white/5 text-rose-200">
+                <LogOut size={17} />
+              </span>
             </button>
           )}
           {!signedIn && (
@@ -348,7 +365,8 @@ export function AuthNav({ serverSignedIn = false }: { serverSignedIn?: boolean }
               onClick={() => setMenuOpen(false)}
               className="flex min-h-10 items-center justify-between rounded-md bg-white px-3 py-2.5 text-sm font-bold text-ink sm:min-h-12 sm:px-4 sm:py-3 sm:text-base"
             >
-              Connexion
+              <span>Connexion</span>
+              <LogIn size={17} />
             </Link>
           )}
         </div>
