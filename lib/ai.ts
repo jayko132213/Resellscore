@@ -12,6 +12,16 @@ export type VisionListingCheck = {
   confidence: "faible" | "moyenne" | "haute";
 };
 
+export type VisionListingExtraction = VisionListingCheck & {
+  title?: string;
+  description?: string;
+  sellerPrice?: number;
+  brand?: string;
+  size?: string;
+  condition?: string;
+  visibleDefects?: string[];
+};
+
 type AnalysisInput = {
   title: string;
   description: string;
@@ -381,6 +391,37 @@ Regles:
 `;
 }
 
+function listingExtractionPrompt() {
+  return `
+Tu es l'IA de lecture visuelle ResellScore. Tu lis une capture d'annonce Vinted/marketplace.
+
+Tu dois refuser tout ce qui n'est pas une vraie annonce de vente exploitable.
+Reponds uniquement en JSON valide:
+{
+  "valid": boolean,
+  "productGuess": string,
+  "title": string,
+  "description": string,
+  "sellerPrice": number,
+  "brand": string,
+  "size": string,
+  "condition": string,
+  "visibleDefects": string[],
+  "reason": string,
+  "confidence": "faible" | "moyenne" | "haute"
+}
+
+Regles strictes:
+- valid=true seulement si tu vois une annonce avec un produit concret a vendre et un prix vendeur lisible.
+- valid=false pour page Google/Supabase/Vercel, erreur, login, dashboard, conversation, menu, photo random, image sans prix, ou capture qui ne ressemble pas a une annonce marketplace.
+- sellerPrice doit etre le prix affiche sur l'annonce. Si le prix n'est pas lisible, valid=false.
+- productGuess doit etre precis: objet + marque si visible + modele/equipe/couleur/taille si visible.
+- Si la marque/taille/etat ne sont pas visibles, laisse une chaine vide.
+- visibleDefects liste seulement les defauts visibles ou mentionnes. Si doute visuel, ecris "defaut possible, incertain".
+- N'invente jamais un prix, une marque ou une taille.
+`;
+}
+
 function hardenVisionCheck(check: VisionListingCheck): VisionListingCheck {
   const text = `${check.productGuess || ""} ${check.reason || ""}`.toLowerCase();
   const blockedTerms = [
@@ -428,6 +469,27 @@ function hardenVisionCheck(check: VisionListingCheck): VisionListingCheck {
   }
 
   return check;
+}
+
+function hardenListingExtraction(extraction: VisionListingExtraction): VisionListingExtraction {
+  const checked = hardenVisionCheck(extraction);
+  if (!checked.valid) return { ...extraction, ...checked, sellerPrice: 0 };
+
+  const price = Number(extraction.sellerPrice || 0);
+  if (!Number.isFinite(price) || price <= 0 || price > 10000) {
+    return {
+      ...extraction,
+      valid: false,
+      reason: "Prix vendeur non lisible sur la capture. Envoie une capture complete avec le prix visible.",
+      confidence: "faible",
+      sellerPrice: 0
+    };
+  }
+
+  return {
+    ...extraction,
+    sellerPrice: price
+  };
 }
 
 function withDisclaimer(result: AnalysisResult): AnalysisResult {
@@ -520,6 +582,43 @@ async function runOpenAiVisionCheck(images: NonNullable<AnalysisInput["images"]>
   return hardenVisionCheck(JSON.parse(text) as VisionListingCheck);
 }
 
+async function runOpenAiListingExtraction(images: NonNullable<AnalysisInput["images"]>): Promise<VisionListingExtraction> {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) return { valid: false, productGuess: "", reason: "Lecture visuelle indisponible.", confidence: "faible", sellerPrice: 0 };
+
+  const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`
+    },
+    body: JSON.stringify({
+      model: process.env.OPENAI_VISION_MODEL || process.env.OPENAI_MODEL || "gpt-4o-mini",
+      response_format: { type: "json_object" },
+      messages: [
+        {
+          role: "user",
+          content: [
+            { type: "text", text: listingExtractionPrompt() },
+            ...images.map((image) => ({
+              type: "image_url",
+              image_url: { url: `data:${image.mimeType};base64,${image.data}` }
+            }))
+          ]
+        }
+      ]
+    })
+  });
+
+  if (!response.ok) {
+    const details = await response.text();
+    throw new Error(`Lecture visuelle OpenAI impossible: ${details.slice(0, 240)}`);
+  }
+  const json = await response.json();
+  const text = String(json.choices?.[0]?.message?.content || "").replace(/```json|```/g, "").trim();
+  return hardenListingExtraction(JSON.parse(text) as VisionListingExtraction);
+}
+
 async function runGeminiAnalysis(input: AnalysisInput): Promise<AnalysisResult> {
   const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
   if (!apiKey) {
@@ -564,6 +663,25 @@ async function runGeminiVisionCheck(images: NonNullable<AnalysisInput["images"]>
   return hardenVisionCheck(JSON.parse(text) as VisionListingCheck);
 }
 
+async function runGeminiListingExtraction(images: NonNullable<AnalysisInput["images"]>): Promise<VisionListingExtraction> {
+  const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+  if (!apiKey) return { valid: false, productGuess: "", reason: "Lecture visuelle indisponible.", confidence: "faible", sellerPrice: 0 };
+
+  const genAI = new GoogleGenerativeAI(apiKey);
+  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+  const response = await model.generateContent([
+    { text: listingExtractionPrompt() },
+    ...images.map((image) => ({
+      inlineData: {
+        data: image.data,
+        mimeType: image.mimeType
+      }
+    }))
+  ]);
+  const text = response.response.text().replace(/```json|```/g, "").trim();
+  return hardenListingExtraction(JSON.parse(text) as VisionListingExtraction);
+}
+
 export async function validateListingImages(images: NonNullable<AnalysisInput["images"]>): Promise<VisionListingCheck> {
   if (images.length === 0) {
     return { valid: false, productGuess: "", reason: "Ajoute une capture de l'annonce.", confidence: "faible" };
@@ -588,6 +706,17 @@ export async function validateListingImages(images: NonNullable<AnalysisInput["i
     reason: "Controle visuel indisponible. Analyse principale autorisee, sans fallback automatique.",
     confidence: "faible"
   };
+}
+
+export async function extractListingFromImages(images: NonNullable<AnalysisInput["images"]>): Promise<VisionListingExtraction> {
+  if (images.length === 0) {
+    return { valid: false, productGuess: "", reason: "Ajoute une capture de l'annonce.", confidence: "faible", sellerPrice: 0 };
+  }
+
+  const provider = getConfiguredAiProvider();
+  if (provider === "openai") return runOpenAiListingExtraction(images);
+  if (provider === "gemini") return runGeminiListingExtraction(images);
+  return { valid: false, productGuess: "", reason: "Lecture visuelle indisponible. Utilise un lien Vinted ou reessaie plus tard.", confidence: "faible", sellerPrice: 0 };
 }
 
 export async function runListingAnalysis(input: AnalysisInput, options: RunAnalysisOptions = {}): Promise<AnalysisResult> {
