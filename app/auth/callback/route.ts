@@ -12,6 +12,7 @@ export async function GET(request: NextRequest) {
   if (!code) {
     redirectTo.pathname = "/login";
     redirectTo.searchParams.set("error", "google_callback_missing");
+    redirectTo.searchParams.set("reason", "missing_code");
     return NextResponse.redirect(redirectTo);
   }
 
@@ -36,6 +37,7 @@ export async function GET(request: NextRequest) {
   if (error) {
     const loginUrl = new URL("/login", requestUrl.origin);
     loginUrl.searchParams.set("error", "google_session_failed");
+    loginUrl.searchParams.set("reason", error.message);
     return NextResponse.redirect(loginUrl);
   }
 

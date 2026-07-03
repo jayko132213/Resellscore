@@ -83,7 +83,7 @@ function getFriendlyAuthError(message: string) {
     return "Google n'est pas encore configure dans Supabase. Active le provider Google dans Supabase, puis ajoute le Client ID et le Secret Google.";
   }
   if (message === "Invalid login credentials") {
-    return "Email ou mot de passe incorrect. Si tu as cree le compte dans Supabase, remets exactement le meme mot de passe dans Auth > Users.";
+    return "Email ou mot de passe incorrect. Si le compte a ete cree avec Google, connecte-toi avec Google. Sinon clique sur Mot de passe oublie pour le remettre proprement.";
   }
   if (lower.includes("rate limit") || lower.includes("email rate")) {
     return "Supabase bloque les emails quelques minutes. Attends un peu avant de reessayer.";
@@ -103,6 +103,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
   const [loading, setLoading] = useState(false);
   const [callbackError, setCallbackError] = useState(false);
   const [deviceChoice, setDeviceChoice] = useState<DeviceChoice>("iphone");
+  const [resetSent, setResetSent] = useState(false);
 
   useEffect(() => {
     setCallbackError(new URLSearchParams(window.location.search).has("error"));
@@ -113,6 +114,8 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
       setDeviceChoice(resolveDevice("auto").type === "pc" ? "pc" : "iphone");
     }
   }, []);
+
+  const callbackUrl = typeof window === "undefined" ? "" : `${window.location.origin}/auth/callback`;
 
   async function saveDeviceOnSupabase(choice: DeviceChoice) {
     const device = saveDeviceChoice(choice);
@@ -146,11 +149,40 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
     const { error: authError } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${origin}/auth/callback?next=/analyze`
+        redirectTo: `${origin}/auth/callback?next=/analyze`,
+        queryParams: {
+          prompt: "select_account"
+        }
       }
     });
     setLoading(false);
     if (authError) setError(getFriendlyAuthError(authError.message));
+  }
+
+  async function resetPassword() {
+    setError("");
+    setResetSent(false);
+
+    const emailInput = document.querySelector<HTMLInputElement>('input[name="email"]');
+    const cleanEmail = emailInput?.value.trim().toLowerCase() || "";
+    if (!cleanEmail) {
+      setError("Mets ton email, puis clique sur Mot de passe oublie.");
+      return;
+    }
+
+    setLoading(true);
+    const supabase = createSupabaseBrowserClient();
+    const origin = window.location.origin;
+    const { error: resetError } = await supabase.auth.resetPasswordForEmail(cleanEmail, {
+      redirectTo: `${origin}/auth/callback?next=/profile`
+    });
+    setLoading(false);
+
+    if (resetError) {
+      setError(getFriendlyAuthError(resetError.message));
+      return;
+    }
+    setResetSent(true);
   }
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
@@ -248,7 +280,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
       </Button>
       {callbackError && (
         <p className="rounded-md border border-rose-300/20 bg-rose-400/10 p-3 text-xs leading-5 text-rose-100">
-          Connexion Google incomplete. Verifie que Supabase a bien l'URL de redirection et que le provider Google est active.
+          Connexion Google incomplete. Dans Supabase, ajoute exactement cette URL dans les redirections autorisees : <span className="font-black text-white">{callbackUrl}</span>. Verifie aussi que le provider Google est active.
         </p>
       )}
 
@@ -270,7 +302,14 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
           <input name="email" type="email" required autoComplete="email" inputMode="email" className="mt-2 w-full rounded-md border border-white/10 bg-white/5 px-3 py-3 text-base outline-none focus:border-accent" />
         </div>
         <div>
-          <label className="text-sm text-muted">Mot de passe</label>
+          <div className="flex items-center justify-between gap-3">
+            <label className="text-sm text-muted">Mot de passe</label>
+            {mode === "login" && (
+              <button type="button" onClick={resetPassword} disabled={loading} className="text-xs font-bold text-accent hover:underline">
+                Mot de passe oublie
+              </button>
+            )}
+          </div>
           <input name="password" type="password" required minLength={8} autoComplete={mode === "login" ? "current-password" : "new-password"} className="mt-2 w-full rounded-md border border-white/10 bg-white/5 px-3 py-3 text-base outline-none focus:border-accent" />
         </div>
         <div>
@@ -308,6 +347,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
           </div>
         </div>
         {error && <p className="rounded-md bg-rose-500/10 p-3 text-sm text-rose-200">{error}</p>}
+        {resetSent && <p className="rounded-md bg-accent/10 p-3 text-sm text-accent">Email envoye. Ouvre le lien Supabase pour remettre ton mot de passe.</p>}
         <Button disabled={loading} className="gap-2">
           <Mail size={17} />
           {loading ? "Chargement..." : mode === "login" ? "Se connecter" : "Creer un compte"}
