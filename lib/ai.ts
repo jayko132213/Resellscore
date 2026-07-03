@@ -354,7 +354,7 @@ Format exact:
 function visionCheckPrompt() {
   return `
 Tu es la premiere IA de controle ResellScore. Tu regardes une ou plusieurs images envoyees par l'utilisateur.
-Objectif: verifier que l'image ressemble vraiment a une capture d'annonce de marketplace/Vinted ou a une annonce de produit a analyser.
+Objectif: verifier STRICTEMENT que l'image est une capture d'annonce de marketplace/Vinted exploitable.
 
 Reponds uniquement en JSON valide:
 {
@@ -365,11 +365,64 @@ Reponds uniquement en JSON valide:
 }
 
 Regles:
-- valid=true si on voit une annonce avec un produit, un prix, un titre, une description, une marque ou des infos vendeur.
-- valid=false si c'est une photo sans contexte, une conversation, une page vide, une image random, un menu, ou si aucun produit/prix/annonce n'est lisible.
+- valid=true UNIQUEMENT si on voit clairement une annonce de vente avec au minimum: un produit identifiable ET un prix vendeur lisible OU un titre d'annonce + prix.
+- valid=false si l'image montre une page Google, Supabase, Vercel, une erreur de connexion, un message OAuth, une page de login, un menu, un dashboard, une conversation, une page vide, un simple logo, une image random, ou une photo sans contexte d'annonce.
+- valid=false si tu ne peux pas lire de prix vendeur.
+- valid=false si tu ne peux pas identifier un objet concret a vendre.
+- valid=false si la capture ne ressemble pas a une annonce Vinted/marketplace, meme si tu vois du texte.
 - productGuess doit resumer le produit detecte, par exemple "maillot Manchester United Adidas taille S".
-- Si une info est floue, dis-le dans reason au lieu d'inventer.
+- Si l'image est une erreur Google/Supabase/OAuth/connexion, reason doit le dire clairement.
+- Si une info est floue, refuse avec valid=false au lieu d'inventer.
 `;
+}
+
+function hardenVisionCheck(check: VisionListingCheck): VisionListingCheck {
+  const text = `${check.productGuess || ""} ${check.reason || ""}`.toLowerCase();
+  const blockedTerms = [
+    "google",
+    "supabase",
+    "vercel",
+    "oauth",
+    "connexion",
+    "login",
+    "callback",
+    "redirect",
+    "erreur",
+    "error",
+    "client id",
+    "client secret",
+    "url configuration",
+    "provider"
+  ];
+
+  if (blockedTerms.some((term) => text.includes(term))) {
+    return {
+      valid: false,
+      productGuess: "",
+      reason: "La capture ressemble a une page technique, une erreur ou une page de connexion, pas a une annonce Vinted.",
+      confidence: "haute"
+    };
+  }
+
+  if (check.valid && (!check.productGuess || check.productGuess.trim().length < 8)) {
+    return {
+      valid: false,
+      productGuess: "",
+      reason: "Produit annonce non identifiable. Envoie une capture complete avec titre, prix et produit visibles.",
+      confidence: check.confidence || "faible"
+    };
+  }
+
+  if (check.valid && check.confidence === "faible") {
+    return {
+      valid: false,
+      productGuess: check.productGuess,
+      reason: check.reason || "Capture trop incertaine. Il faut une annonce plus lisible.",
+      confidence: "faible"
+    };
+  }
+
+  return check;
 }
 
 function withDisclaimer(result: AnalysisResult): AnalysisResult {
@@ -423,7 +476,7 @@ async function runOpenAiAnalysis(input: AnalysisInput): Promise<AnalysisResult> 
 
 async function runOpenAiVisionCheck(images: NonNullable<AnalysisInput["images"]>): Promise<VisionListingCheck> {
   const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) return { valid: true, productGuess: "", reason: "Controle visuel indisponible.", confidence: "faible" };
+  if (!apiKey) return { valid: false, productGuess: "", reason: "Controle visuel indisponible.", confidence: "faible" };
 
   const response = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
@@ -449,10 +502,10 @@ async function runOpenAiVisionCheck(images: NonNullable<AnalysisInput["images"]>
     })
   });
 
-  if (!response.ok) return { valid: true, productGuess: "", reason: "Controle visuel non bloque pour eviter un faux refus.", confidence: "faible" };
+  if (!response.ok) return { valid: false, productGuess: "", reason: "Controle visuel impossible. Reessaie avec une capture plus nette.", confidence: "faible" };
   const json = await response.json();
   const text = String(json.choices?.[0]?.message?.content || "").replace(/```json|```/g, "").trim();
-  return JSON.parse(text) as VisionListingCheck;
+  return hardenVisionCheck(JSON.parse(text) as VisionListingCheck);
 }
 
 async function runGeminiAnalysis(input: AnalysisInput): Promise<AnalysisResult> {
@@ -482,7 +535,7 @@ async function runGeminiAnalysis(input: AnalysisInput): Promise<AnalysisResult> 
 
 async function runGeminiVisionCheck(images: NonNullable<AnalysisInput["images"]>): Promise<VisionListingCheck> {
   const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
-  if (!apiKey) return { valid: true, productGuess: "", reason: "Controle visuel indisponible.", confidence: "faible" };
+  if (!apiKey) return { valid: false, productGuess: "", reason: "Controle visuel indisponible.", confidence: "faible" };
 
   const genAI = new GoogleGenerativeAI(apiKey);
   const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
@@ -496,7 +549,7 @@ async function runGeminiVisionCheck(images: NonNullable<AnalysisInput["images"]>
     }))
   ]);
   const text = response.response.text().replace(/```json|```/g, "").trim();
-  return JSON.parse(text) as VisionListingCheck;
+  return hardenVisionCheck(JSON.parse(text) as VisionListingCheck);
 }
 
 export async function validateListingImages(images: NonNullable<AnalysisInput["images"]>): Promise<VisionListingCheck> {
@@ -509,10 +562,10 @@ export async function validateListingImages(images: NonNullable<AnalysisInput["i
     if (provider === "openai") return await runOpenAiVisionCheck(images);
     if (provider === "gemini") return await runGeminiVisionCheck(images);
   } catch {
-    return { valid: true, productGuess: "", reason: "Controle visuel incertain, analyse autorisee.", confidence: "faible" };
+    return { valid: false, productGuess: "", reason: "Controle visuel incertain. Reessaie avec une capture complete et lisible de l'annonce.", confidence: "faible" };
   }
 
-  return { valid: true, productGuess: "", reason: "Controle visuel indisponible.", confidence: "faible" };
+  return { valid: false, productGuess: "", reason: "Controle visuel indisponible. Reessaie plus tard ou utilise un lien Vinted.", confidence: "faible" };
 }
 
 export async function runListingAnalysis(input: AnalysisInput): Promise<AnalysisResult> {

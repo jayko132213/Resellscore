@@ -53,7 +53,7 @@ export async function POST(request: Request) {
       visualProductGuess = visualCheck.productGuess || "";
       if (!visualCheck.valid) {
         return NextResponse.json({
-          error: `Ceci n'est pas reconnu comme une annonce Vinted/marketplace. ${visualCheck.reason || "Envoie une capture ou l'on voit le produit, le prix et le texte de l'annonce."}`
+          error: `Capture refusée : ce n'est pas une annonce Vinted/marketplace exploitable. ${visualCheck.reason || "Envoie une capture complete ou l'on voit le produit, le prix, le titre et le texte de l'annonce."}`
         }, { status: 422 });
       }
     }
