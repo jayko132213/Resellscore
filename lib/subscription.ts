@@ -7,6 +7,7 @@ type ProfileLike = {
 };
 
 export function isExpired(expiresAt?: string | null) {
+  if (expiresAt?.startsWith("9999-")) return false;
   if (!expiresAt) return false;
   return new Date(expiresAt).getTime() <= Date.now();
 }

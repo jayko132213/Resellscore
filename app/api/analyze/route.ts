@@ -61,17 +61,28 @@ export async function POST(request: Request) {
   const mergedBrand = input.brand || sourceListing?.brand || undefined;
   const mergedCondition = input.condition || sourceListing?.condition || undefined;
 
-  const result = await runListingAnalysis({
-    title: mergedTitle,
-    description: mergedDescription,
-    sellerPrice: mergedPrice,
-    brand: mergedBrand,
-    size: input.size || undefined,
-    condition: mergedCondition,
-    vintedUrl: input.vintedUrl || undefined,
-    photoCount: input.photoUrls.length,
-    sourceListing
-  });
+  let result;
+  try {
+    result = await runListingAnalysis({
+      title: mergedTitle,
+      description: mergedDescription,
+      sellerPrice: mergedPrice,
+      brand: mergedBrand,
+      size: input.size || undefined,
+      condition: mergedCondition,
+      vintedUrl: input.vintedUrl || undefined,
+      photoCount: input.photoUrls.length,
+      sourceListing
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Analyse impossible.";
+    if (/quota|billing|insufficient_quota|exceeded/i.test(message)) {
+      return NextResponse.json({
+        error: "Le moteur IA du site n'a plus de quota OpenAI pour le moment. Ton abonnement ResellScore est bien actif, mais il faut recharger/configurer la facturation OpenAI du site."
+      }, { status: 503 });
+    }
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
 
   const admin = createSupabaseAdminClient();
   const { data: analysis, error } = await admin

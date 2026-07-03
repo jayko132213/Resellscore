@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Crown, Monitor, RefreshCw, Search, Smartphone, TabletSmartphone, UserMinus, UserPlus } from "lucide-react";
+import { Crown, Infinity, Monitor, RefreshCw, Search, Smartphone, TabletSmartphone, UserMinus, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { PlanKey } from "@/lib/plans";
 import { euros } from "@/lib/utils";
@@ -41,6 +41,10 @@ function defaultExpiryDate() {
   return date.toISOString().slice(0, 10);
 }
 
+function isLifetimeDate(value?: string | null) {
+  return Boolean(value?.startsWith("9999-"));
+}
+
 export function AdminPanel() {
   const [email, setEmail] = useState("");
   const [plan, setPlan] = useState<Exclude<PlanKey, "free">>("elite");
@@ -72,7 +76,7 @@ export function AdminPanel() {
     loadUsers();
   }, []);
 
-  async function updatePlan(action: "grant-plan" | "revoke-elite") {
+  async function updatePlan(action: "grant-plan" | "grant-lifetime" | "revoke-elite") {
     setLoading(true);
     setMessage("");
 
@@ -84,8 +88,8 @@ export function AdminPanel() {
         body: JSON.stringify({
           action,
           email,
-          plan,
-          expiresAt: endDate.toISOString()
+          plan: action === "grant-lifetime" ? "elite" : plan,
+          expiresAt: action === "grant-lifetime" ? undefined : endDate.toISOString()
         })
       });
       const json = await response.json();
@@ -118,7 +122,7 @@ export function AdminPanel() {
         </p>
         <h1 className="mt-4 text-3xl font-bold">Acces manuel</h1>
         <p className="mt-3 text-sm leading-6 text-muted">
-          Active Starter, Pro ou Elite avec une date de fin. Quand la date est depassee, le site repasse automatiquement le compte en Gratuit.
+          Active Starter, Pro ou Elite avec une date de fin. Tu peux aussi donner Elite a vie pour les collabs ou ton compte perso.
         </p>
 
         <div className="mt-6 grid gap-4">
@@ -160,13 +164,24 @@ export function AdminPanel() {
             </label>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-3 sm:grid-cols-3">
             <Button type="button" onClick={() => updatePlan("grant-plan")} disabled={loading || !email || !expiresAt}>
               <span className="inline-flex items-center gap-2">
                 <UserPlus size={18} />
                 Activer jusqu'a la date
               </span>
             </Button>
+            <button
+              type="button"
+              onClick={() => updatePlan("grant-lifetime")}
+              disabled={loading || !email}
+              className="rounded-md border border-accent/30 bg-accent/10 px-4 py-3 font-bold text-accent transition hover:bg-accent hover:text-ink disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <span className="inline-flex items-center gap-2">
+                <Infinity size={18} />
+                Elite a vie
+              </span>
+            </button>
             <button
               type="button"
               onClick={() => updatePlan("revoke-elite")}
@@ -242,7 +257,7 @@ export function AdminPanel() {
 
                 <div className="grid gap-2 text-sm sm:grid-cols-5 lg:min-w-[620px]">
                   <MiniStat label="Plan" value={user.plan} />
-                  <MiniStat label="Statut" value={user.status} />
+                  <MiniStat label="Statut" value={isLifetimeDate(user.manualExpiresAt) ? "a vie" : user.status} />
                   <MiniStat
                     label="Appareil"
                     value={user.lastDeviceLabel || "Inconnu"}
