@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ArrowUp, Crown, KeyRound, LogOut, MessageSquare, MoreHorizontal, Settings, ShieldCheck, Star, UserCircle, X } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { normalizePlan, type PlanKey } from "@/lib/plans";
+import { cn } from "@/lib/utils";
 
 type DemoUser = {
   email: string;
@@ -57,6 +58,13 @@ function planBadge(plan: PlanKey) {
     text: "bg-stone-300 text-ink",
     icon: null
   };
+}
+
+function planLabel(plan: PlanKey) {
+  if (plan === "elite") return "Elite";
+  if (plan === "pro") return "Pro";
+  if (plan === "starter") return "Starter";
+  return "Free";
 }
 
 function detectHeaderDevice(): HeaderDevice {
@@ -156,6 +164,7 @@ export function AuthNav({ serverSignedIn = false }: { serverSignedIn?: boolean }
   const displayName = user?.pseudo?.trim() || "";
   const activePlan = normalizePlan(user?.plan);
   const badge = planBadge(activePlan);
+  const shortName = displayName || user?.email?.split("@")[0] || "Profil";
   const compactHeader = headerDevice !== "pc" || smallViewport;
   const mainLinks = [
     { href: signedIn ? "/analyze" : "/signup", label: "Analyser", level: "", icon: null, primary: true },
@@ -186,6 +195,12 @@ export function AuthNav({ serverSignedIn = false }: { serverSignedIn?: boolean }
 
   return (
     <div className="relative flex min-w-0 items-center gap-1.5 sm:gap-3">
+      {signedIn && !compactHeader && (
+        <div className="hidden items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-bold text-muted shadow-[0_0_18px_rgba(255,255,255,0.04)] lg:flex">
+          <span className="h-2 w-2 rounded-full bg-accent shadow-[0_0_14px_rgba(74,222,128,0.6)]" />
+          IA prête
+        </div>
+      )}
       <button
         type="button"
         onClick={() => setMenuOpen((value) => !value)}
@@ -199,6 +214,49 @@ export function AuthNav({ serverSignedIn = false }: { serverSignedIn?: boolean }
       >
         {menuOpen ? <X size={19} /> : <MoreHorizontal size={22} />}
       </button>
+
+      {signedIn ? (
+        <Link
+          href="/profile"
+          className={cn(
+            "relative flex min-w-0 max-w-[150px] items-center gap-2 rounded-full border bg-white/[0.05] px-2 py-1.5 text-white shadow-[0_0_18px_rgba(255,255,255,0.05)] transition hover:bg-white/10 sm:max-w-[210px] sm:px-3",
+            badge.ring
+          )}
+          aria-label="Profil"
+        >
+          <span className="relative grid h-8 w-8 shrink-0 place-items-center overflow-hidden rounded-full border border-white/10 bg-white/10 sm:h-9 sm:w-9">
+            {user?.avatar ? (
+              <img
+                src={user.avatar}
+                alt=""
+                className="h-full w-full object-cover"
+                style={{ transform: `scale(${user.avatarZoom || 1})` }}
+              />
+            ) : (
+              <UserCircle size={22} className="text-muted" />
+            )}
+          </span>
+          {activePlan === "elite" && (
+            <span className="absolute -top-2 left-6 grid h-5 w-5 place-items-center rounded-full bg-accent text-ink shadow-[0_0_14px_rgba(74,222,128,0.45)]">
+              <Crown size={11} />
+            </span>
+          )}
+          <span className="min-w-0">
+            <span className="block truncate text-xs font-black sm:text-sm">{shortName}</span>
+            <span className={cn("mt-0.5 hidden w-fit items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-black uppercase sm:inline-flex", badge.text)}>
+              {badge.icon}
+              {planLabel(activePlan)}
+            </span>
+          </span>
+        </Link>
+      ) : (
+        <Link
+          href="/login"
+          className="hidden rounded-full border border-accent/30 bg-accent/10 px-3 py-2 text-xs font-black text-accent shadow-[0_0_18px_rgba(74,222,128,0.1)] transition hover:bg-accent hover:text-ink sm:inline-flex"
+        >
+          Connexion
+        </Link>
+      )}
 
       {showGuide && !menuOpen && (
         <div className="fixed inset-x-3 top-16 z-50 rounded-lg border border-accent/30 bg-ink p-3 shadow-glow sm:left-auto sm:right-6 sm:top-20 sm:w-[340px]">
