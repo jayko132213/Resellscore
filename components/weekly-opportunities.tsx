@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { ArrowUp, Crown, ExternalLink, Loader2, Lock, Search, ShieldCheck, Sparkles } from "lucide-react";
+import { ArrowUp, CheckCircle2, Crown, ExternalLink, Loader2, Lock, Search, ShieldCheck, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { normalizePlan } from "@/lib/plans";
 
@@ -226,6 +226,7 @@ export function WeeklyOpportunities() {
   const [isElite, setIsElite] = useState(false);
   const [planLoaded, setPlanLoaded] = useState(false);
   const [liveItems, setLiveItems] = useState<LiveOpportunity[]>([]);
+  const [seenLinks, setSeenLinks] = useState<string[]>([]);
   const [liveMessage, setLiveMessage] = useState("");
   const [liveLoading, setLiveLoading] = useState(false);
 
@@ -272,6 +273,11 @@ export function WeeklyOpportunities() {
   }, []);
 
   useEffect(() => {
+    const stored = localStorage.getItem("resellscore_seen_opportunities");
+    if (stored) setSeenLinks(JSON.parse(stored) as string[]);
+  }, []);
+
+  useEffect(() => {
     if (!isElite) return;
 
     let cancelled = false;
@@ -308,6 +314,15 @@ export function WeeklyOpportunities() {
         return b.seasonScore - a.seasonScore;
       });
   }, [budget, sort]);
+
+  function markSeen(link: string) {
+    setSeenLinks((current) => {
+      if (current.includes(link)) return current;
+      const next = [link, ...current].slice(0, 100);
+      localStorage.setItem("resellscore_seen_opportunities", JSON.stringify(next));
+      return next;
+    });
+  }
 
   if (!planLoaded) {
     return (
@@ -427,37 +442,50 @@ export function WeeklyOpportunities() {
 
         {liveItems.length > 0 ? (
           <div className="mt-4 grid gap-3 lg:grid-cols-2">
-            {liveItems.slice(0, 6).map((item) => (
-              <a
-                key={item.id}
-                href={item.link}
-                target="_blank"
-                rel="noreferrer"
-                className="rounded-lg border border-white/10 bg-white/[0.03] p-4 transition hover:border-accent/60 hover:bg-white/[0.05]"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-xs font-black uppercase text-accent">{item.category}</p>
-                    <h3 className="mt-1 line-clamp-2 font-bold text-white">{item.title}</h3>
+            {liveItems.slice(0, 6).map((item) => {
+              const seen = seenLinks.includes(item.link);
+              return (
+                <a
+                  key={item.id}
+                  href={item.link}
+                  target="_blank"
+                  rel="noreferrer"
+                  onClick={() => markSeen(item.link)}
+                  className={cn(
+                    "relative rounded-lg border bg-white/[0.03] p-4 transition hover:border-accent/60 hover:bg-white/[0.05]",
+                    seen ? "border-accent/35" : "border-white/10"
+                  )}
+                >
+                  {seen ? (
+                    <span className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full border border-accent/30 bg-accent/15 px-2 py-1 text-[11px] font-black uppercase text-accent">
+                      <CheckCircle2 size={12} />
+                      Vu
+                    </span>
+                  ) : null}
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-xs font-black uppercase text-accent">{item.category}</p>
+                      <h3 className={cn("mt-1 line-clamp-2 font-bold text-white", seen ? "pr-14" : "")}>{item.title}</h3>
+                    </div>
+                    <span className="shrink-0 rounded-full bg-accent px-3 py-1 text-xs font-black text-ink">{item.score}/10</span>
                   </div>
-                  <span className="shrink-0 rounded-full bg-accent px-3 py-1 text-xs font-black text-ink">{item.score}/10</span>
-                </div>
-                <div className="mt-3 grid grid-cols-2 gap-2 text-xs sm:grid-cols-3">
-                  <Mini label="Prix annonce" value={`${item.listingPrice || item.buy} EUR`} highlight />
-                  <Mini label="Prix neuf estime" value={`${item.retail} EUR`} />
-                  <Mini label="Revente visee" value={`${item.resale} EUR`} />
-                  <Mini label="Marge brute" value={`+${item.margin} EUR`} highlight />
-                  <Mini label="Marge" value={`${Math.round(item.marginRate * 100)}%`} />
-                  <Mini label="Demande" value={`${item.demand}%`} />
-                </div>
-                <p className="mt-3 text-sm leading-6 text-slate-300">{item.signal} - {item.reason}</p>
-                <p className="mt-2 text-xs leading-5 text-amber-100">Risque : {item.risk}</p>
-                <p className="mt-3 inline-flex items-center gap-2 text-xs font-bold text-accent">
-                  Ouvrir l'annonce Vinted
-                  <ExternalLink size={13} />
-                </p>
-              </a>
-            ))}
+                  <div className="mt-3 grid grid-cols-2 gap-2 text-xs sm:grid-cols-3">
+                    <Mini label="Prix annonce" value={`${item.listingPrice || item.buy} EUR`} highlight />
+                    <Mini label="Prix neuf estime" value={`${item.retail} EUR`} />
+                    <Mini label="Revente visee" value={`${item.resale} EUR`} />
+                    <Mini label="Marge brute" value={`+${item.margin} EUR`} highlight />
+                    <Mini label="Marge" value={`${Math.round(item.marginRate * 100)}%`} />
+                    <Mini label="Demande" value={`${item.demand}%`} />
+                  </div>
+                  <p className="mt-3 text-sm leading-6 text-slate-300">{item.signal} - {item.reason}</p>
+                  <p className="mt-2 text-xs leading-5 text-amber-100">Risque : {item.risk}</p>
+                  <p className="mt-3 inline-flex items-center gap-2 text-xs font-bold text-accent">
+                    Ouvrir l'annonce Vinted
+                    <ExternalLink size={13} />
+                  </p>
+                </a>
+              );
+            })}
           </div>
         ) : (
           <div className="mt-4 rounded-md border border-white/10 bg-white/[0.03] p-4 text-sm leading-6 text-muted">
