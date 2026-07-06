@@ -456,16 +456,18 @@ export function WeeklyOpportunities() {
                     seen ? "border-accent/35" : "border-white/10"
                   )}
                 >
-                  {seen ? (
-                    <span className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full border border-accent/30 bg-accent/15 px-2 py-1 text-[11px] font-black uppercase text-accent">
-                      <CheckCircle2 size={12} />
-                      Vu
-                    </span>
-                  ) : null}
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <p className="text-xs font-black uppercase text-accent">{item.category}</p>
-                      <h3 className={cn("mt-1 line-clamp-2 font-bold text-white", seen ? "pr-14" : "")}>{item.title}</h3>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="text-xs font-black uppercase text-accent">{item.category}</p>
+                        {seen ? (
+                          <span className="inline-flex items-center gap-1 rounded-full border border-accent/30 bg-accent/15 px-2 py-0.5 text-[10px] font-black uppercase text-accent">
+                            <CheckCircle2 size={11} />
+                            Vu
+                          </span>
+                        ) : null}
+                      </div>
+                      <h3 className="mt-1 line-clamp-2 font-bold text-white">{item.title}</h3>
                     </div>
                     <span className="shrink-0 rounded-full bg-accent px-3 py-1 text-xs font-black text-ink">{item.score}/10</span>
                   </div>

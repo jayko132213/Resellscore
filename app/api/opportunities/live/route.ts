@@ -54,6 +54,57 @@ const badListingWords = [
   "pour pieces"
 ];
 
+const aestheticBoostWords = [
+  "vintage",
+  "retro",
+  "brode",
+  "logo",
+  "ancien",
+  "rare",
+  "oversize",
+  "y2k",
+  "gorpcore",
+  "acg",
+  "torsade",
+  "oxford",
+  "usa",
+  "made in",
+  "cuir",
+  "vert",
+  "bleu",
+  "rouge",
+  "rose",
+  "creme",
+  "beige",
+  "marine",
+  "noir",
+  "blanc"
+];
+
+const aestheticPenaltyWords = [
+  "delave",
+  "delavé",
+  "tache",
+  "taches",
+  "trou",
+  "troue",
+  "troué",
+  "abime",
+  "abîme",
+  "abimee",
+  "abîmée",
+  "use",
+  "usé",
+  "sale",
+  "sans marque",
+  "lot",
+  "basique",
+  "simple",
+  "ancien mais",
+  "a reparer",
+  "à réparer"
+];
+
 function cleanText(value: string) {
   return value
     .replace(/<[^>]+>/g, " ")
@@ -81,6 +132,20 @@ function absoluteVintedLink(href: string) {
 function looksReliable(title: string) {
   const value = title.toLowerCase();
   return !badListingWords.some((word) => value.includes(word));
+}
+
+function sellabilityScore(title: string, scan: typeof scans[number]) {
+  const value = title.toLowerCase();
+  const titleWords = value.split(/\s+/).filter(Boolean);
+  const hasScanBrand = scan.q.toLowerCase().split(/\s+/).some((word) => word.length > 3 && value.includes(word));
+  const boosts = aestheticBoostWords.filter((word) => value.includes(word)).length;
+  const penalties = aestheticPenaltyWords.filter((word) => value.includes(word)).length;
+  const detailScore = Math.min(1.2, Math.max(0, titleWords.length - 3) * 0.18);
+  const brandScore = hasScanBrand ? 1.25 : -0.8;
+  const styleScore = Math.min(1.6, boosts * 0.35);
+  const penaltyScore = penalties * 0.65;
+  const categoryScore = ["Outdoor", "Gorpcore", "Workwear", "Sport", "Classique", "Vintage", "Designer"].includes(scan.category) ? 0.45 : 0.2;
+  return Math.max(1, Math.min(10, 5.3 + brandScore + styleScore + detailScore + categoryScore - penaltyScore));
 }
 
 function extractLinks(html: string) {
@@ -199,15 +264,17 @@ async function fetchSearch(scan: typeof scans[number]) {
         const price = item.listingPrice;
         const margin = scan.resale - price;
         const marginRate = margin / Math.max(price, 1);
-        return price > 0 && price <= scan.max && margin >= scan.minMargin && marginRate >= scan.minRate;
+        const sellable = sellabilityScore(item.title, scan);
+        return price > 0 && price <= scan.max && margin >= scan.minMargin && marginRate >= scan.minRate && sellable >= 6.2;
       })
       .map((item, index): LiveOpportunity => {
         const listingPrice = item.listingPrice;
         const margin = scan.resale - listingPrice;
         const marginRate = margin / Math.max(listingPrice, 1);
+        const sellable = sellabilityScore(item.title, scan);
         const score = Math.max(
           7.4,
-          Math.min(9.8, 6.7 + marginRate * 1.25 + scan.demand / 100 + (listingPrice <= scan.max * 0.75 ? 0.35 : 0) - index * 0.08)
+          Math.min(9.8, 6.2 + marginRate * 1.05 + scan.demand / 100 + sellable * 0.18 + (listingPrice <= scan.max * 0.75 ? 0.35 : 0) - index * 0.08)
         );
 
         return {
@@ -224,11 +291,11 @@ async function fetchSearch(scan: typeof scans[number]) {
           demand: scan.demand,
           popularity: Math.min(98, scan.demand + 4 - index),
           link: item.link,
-          signal: "Prix lu sur la page annonce",
-          reason: `Prix annonce: ${listingPrice} EUR. Revente visee: ${scan.resale} EUR. Marge brute: ${margin} EUR avant frais.`,
+          signal: `Prix lu + style vendable ${sellable.toFixed(1)}/10`,
+          reason: `Prix annonce: ${listingPrice} EUR. Revente visee: ${scan.resale} EUR. Marge brute: ${margin} EUR avant frais. Titre juge vendable: marque/style/details assez clairs.`,
           risk: scan.risk,
           condition: "A verifier sur photos vendeur",
-          sellerSignal: `Prix exact sous ${scan.max} EUR`,
+          sellerSignal: `Prix exact sous ${scan.max} EUR, style assez propre pour revendre`,
           spottedAt: `Live ${new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}`
         };
       });
