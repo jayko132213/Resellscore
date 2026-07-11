@@ -450,6 +450,27 @@ export function WeeklyOpportunities() {
     return base.slice(0, query ? 36 : 48);
   }, [activeSearches, allNicheSearches, nicheSearch]);
 
+  const filteredLiveItems = useMemo(() => {
+    const selectedBudget = budgetFilters.find((item) => item.key === budget) || budgetFilters[0];
+    return liveItems
+      .filter((item) => item.listingPrice >= selectedBudget.min && item.listingPrice <= selectedBudget.max)
+      .sort((a, b) => {
+        if (sort === "safe") return b.demand - a.demand;
+        if (sort === "season") return b.popularity - a.popularity;
+        return b.margin - a.margin;
+      });
+  }, [budget, liveItems, sort]);
+
+  const radarStats = useMemo(() => {
+    const top = filteredLiveItems[0];
+    const hot = filteredLiveItems.filter((item) => item.likes !== null && item.likes >= 4).length;
+    return {
+      found: filteredLiveItems.length,
+      hot,
+      bestMargin: top ? Math.max(...filteredLiveItems.map((item) => item.margin)) : 0
+    };
+  }, [filteredLiveItems]);
+
   function markSeen(link: string) {
     setSeenLinks((current) => {
       if (current.includes(link)) return current;
@@ -538,140 +559,60 @@ export function WeeklyOpportunities() {
 
   return (
     <section className="mt-8">
-      <div className="rounded-lg border border-white/10 bg-panel p-5 shadow-glow">
-        <div className="mb-5 flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-5">
+      <div className="rounded-lg border border-accent/20 bg-panel p-5 shadow-glow">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <p className="flex items-center gap-2 text-sm font-bold text-white">
+            <p className="flex items-center gap-2 text-sm font-black text-accent">
               <ArrowUp size={16} className="text-accent" />
-              Radar revente
+              Radar pepites Elite
             </p>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-muted">
-              Des pistes concretes a chercher sur Vinted : budget max, prix de revente vise, signaux a verifier et angle d'annonce. Pas de fausses annonces inventees.
-            </p>
+            <h1 className="mt-2 text-3xl font-black text-white">Trouver les annonces sous-cotees</h1>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-muted">Prix bas, marge x2, niche demandee, annonce fraiche. Si les likes sont caches par Vinted, le radar le dit clairement.</p>
           </div>
-          <span className="inline-flex items-center gap-2 rounded-full border border-accent/25 bg-accent/10 px-3 py-1 text-xs font-bold text-accent">
-            <Crown size={13} />
-            Elite
-          </span>
-        </div>
-
-        <div className="flex flex-wrap gap-2">
-          {sortFilters.map((filter) => (
-            <button
-              key={filter.key}
-              type="button"
-              onClick={() => setSort(filter.key)}
-              className={cn(
-                "inline-flex h-10 items-center gap-2 rounded-md border px-4 text-sm font-semibold transition",
-                sort === filter.key ? "border-accent bg-accent text-ink" : "border-white/15 bg-white/5 text-white hover:bg-white/10"
-              )}
-            >
-              <Search size={15} />
-              {filter.label}
-            </button>
-          ))}
-        </div>
-
-        <div className="mt-3 flex flex-wrap gap-2">
-          {budgetFilters.map((filter) => (
-            <button
-              key={filter.key}
-              type="button"
-              onClick={() => setBudget(filter.key)}
-              className={cn(
-                "h-9 rounded-md border px-3 text-xs font-bold transition",
-                budget === filter.key ? "border-white bg-white text-ink" : "border-white/15 bg-white/5 text-slate-200 hover:bg-white/10"
-              )}
-            >
-              {filter.label}
-            </button>
-          ))}
+          <div className="grid min-w-[260px] grid-cols-3 gap-2">
+            <RadarStat label="Pépites" value={String(radarStats.found)} />
+            <RadarStat label="Likes vus" value={String(radarStats.hot)} />
+            <RadarStat label="Marge max" value={`+${radarStats.bestMargin} EUR`} />
+          </div>
         </div>
       </div>
 
       <section className="mt-6 rounded-lg border border-white/10 bg-panel p-5 shadow-glow">
-        <div className="flex flex-col gap-3 border-b border-white/10 pb-5 md:flex-row md:items-start md:justify-between">
-          <div>
-            <p className="flex items-center gap-2 text-sm font-black text-accent">
-              <Bot size={17} />
-              Bot Vinted par niche
-            </p>
-            <h2 className="mt-2 text-2xl font-bold">Choisis ce que le radar doit chercher</h2>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-muted">
-              Le scanner lance plusieurs recherches comme un compte Vinted non connecte: marque, sous-style, budget, marge et potentiel de revente.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={refreshLive}
-            className="inline-flex h-11 items-center justify-center gap-2 rounded-md bg-accent px-4 text-sm font-black text-ink transition hover:bg-accent/90"
-          >
-            {liveLoading ? <Loader2 size={16} className="animate-spin" /> : <Search size={16} />}
-            Scanner
-          </button>
-        </div>
-
-        <div className="mt-5 flex flex-col gap-3 rounded-lg border border-white/10 bg-black/20 p-4 md:flex-row md:items-center md:justify-between">
-          <div>
-            <p className="text-xs font-black uppercase text-muted">Filtres sauvegardes</p>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {savedFilters.map((filter) => (
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
+          <div className="grid gap-3">
+            <label className="grid gap-2 text-sm font-bold text-white">
+              Recherche rapide
+              <input
+                value={nicheSearch}
+                onChange={(event) => setNicheSearch(event.target.value)}
+                className="h-12 rounded-md border border-white/10 bg-black/30 px-4 text-sm font-semibold outline-none transition focus:border-accent"
+                placeholder="Tape Nike, sac, iPod, maillot, Y2K, Ralph..."
+              />
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {budgetFilters.map((filter) => (
                 <button
-                  key={filter.id}
+                  key={filter.key}
                   type="button"
-                  onClick={() => setDraftFilter(filter)}
-                  className="inline-flex items-center gap-2 rounded-md border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-bold text-white hover:border-accent/40"
+                  onClick={() => setBudget(filter.key)}
+                  className={cn("h-9 rounded-md border px-3 text-xs font-bold transition", budget === filter.key ? "border-white bg-white text-ink" : "border-white/15 bg-white/5 text-slate-200 hover:bg-white/10")}
                 >
-                  <Filter size={13} className="text-accent" />
-                  {filter.name}
+                  {filter.label}
+                </button>
+              ))}
+              {sortFilters.map((filter) => (
+                <button
+                  key={filter.key}
+                  type="button"
+                  onClick={() => setSort(filter.key)}
+                  className={cn("h-9 rounded-md border px-3 text-xs font-bold transition", sort === filter.key ? "border-accent bg-accent text-ink" : "border-white/15 bg-white/5 text-slate-200 hover:bg-white/10")}
+                >
+                  {filter.label}
                 </button>
               ))}
             </div>
           </div>
-          <button
-            type="button"
-            onClick={() => {
-              setDraftFilter({ ...defaultFilter, id: `filter-${Date.now()}` });
-              setFiltersOpen(true);
-            }}
-            className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-accent/35 bg-accent/10 px-4 text-sm font-black text-accent hover:bg-accent/15"
-          >
-            <Filter size={15} />
-            Creer un filtre
-          </button>
-        </div>
-
-        <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-          {nichePresets.map((niche) => {
-            const active = selectedNiches.includes(niche.id);
-            return (
-              <button
-                key={niche.id}
-                type="button"
-                onClick={() => toggleNiche(niche.id)}
-                className={cn(
-                  "rounded-lg border p-4 text-left transition",
-                  active ? "border-accent/60 bg-accent/10" : "border-white/10 bg-white/[0.03] hover:border-white/25"
-                )}
-              >
-                <span className={cn("text-sm font-black", active ? "text-accent" : "text-white")}>{niche.label}</span>
-                <span className="mt-2 block text-xs leading-5 text-muted">{niche.description}</span>
-              </button>
-            );
-          })}
-        </div>
-
-        <div className="mt-5">
-          <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
-            <label className="grid gap-2 text-sm font-bold text-white">
-              Recherche de niche
-              <input
-                value={nicheSearch}
-                onChange={(event) => setNicheSearch(event.target.value)}
-                className="h-11 rounded-md border border-white/10 bg-white/[0.06] px-3 text-sm font-semibold outline-none transition focus:border-accent"
-                placeholder="Tape Nike, Ralph, gorpcore, maillot, Y2K..."
-              />
-            </label>
+          <div className="flex gap-2">
             <button
               type="button"
               onClick={() => {
@@ -683,12 +624,20 @@ export function WeeklyOpportunities() {
             >
               Mode niche
             </button>
+            <button
+              type="button"
+              onClick={refreshLive}
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-md bg-accent px-5 text-sm font-black text-ink transition hover:bg-accent/90"
+            >
+              {liveLoading ? <Loader2 size={16} className="animate-spin" /> : <Search size={16} />}
+              Scanner
+            </button>
           </div>
+        </div>
 
-          <p className="mt-4 text-xs font-black uppercase text-muted">
-            {nicheSearch.trim() ? "Suggestions trouvees" : "Sous-recherches actives"}
-          </p>
-          <div className="mt-2 flex max-h-44 flex-wrap gap-2 overflow-y-auto pr-1">
+        <div className="mt-5">
+          <p className="text-xs font-black uppercase text-muted">{nicheSearch.trim() ? "Suggestions trouvees" : "Niches actives"}</p>
+          <div className="mt-2 flex max-h-36 flex-wrap gap-2 overflow-y-auto pr-1">
             {suggestedSearches.map((search) => {
               const active = selectedSearches.length === 0 ? selectedNiches.includes(search.nicheId) : selectedSearches.includes(search.id);
               return (
@@ -707,15 +656,23 @@ export function WeeklyOpportunities() {
               );
             })}
           </div>
-          <p className="mt-2 text-xs text-muted">
-            Si aucun sous-filtre n'est choisi, le bot scanne toutes les sous-recherches des niches cochees. Le bouton Niche ajoute les recherches a plus forte marge.
-          </p>
         </div>
 
-        <div className="mt-5 grid gap-3 md:grid-cols-3">
-          <MethodCard title="Prix max safe" text="Le radar prend la revente estimee, retire environ 15% de securite, puis divise par deux." />
-          <MethodCard title="Demande" text="Il garde les annonces avec signaux de likes quand ils sont lisibles, ou niches deja fortes." />
-          <MethodCard title="Lot vendeur" text="Si une piece est trop chere, regarde le dressing du vendeur pour negocier un lot." />
+        <div className="mt-5 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+          {nichePresets.map((niche) => {
+            const active = selectedNiches.includes(niche.id);
+            return (
+              <button
+                key={niche.id}
+                type="button"
+                onClick={() => toggleNiche(niche.id)}
+                className={cn("rounded-md border px-3 py-2 text-left transition", active ? "border-accent/60 bg-accent/10" : "border-white/10 bg-white/[0.03] hover:border-white/25")}
+              >
+                <span className={cn("block text-xs font-black", active ? "text-accent" : "text-white")}>{niche.label}</span>
+                <span className="mt-1 line-clamp-1 block text-[11px] text-muted">{niche.description}</span>
+              </button>
+            );
+          })}
         </div>
       </section>
 
@@ -740,9 +697,9 @@ export function WeeklyOpportunities() {
           </button>
         </div>
 
-        {liveItems.length > 0 ? (
+        {filteredLiveItems.length > 0 ? (
           <div className="mt-4 grid gap-3">
-            {liveItems.slice(0, 6).map((item) => {
+            {filteredLiveItems.slice(0, 8).map((item) => {
               const seen = seenLinks.includes(item.link);
               return (
                 <article
@@ -1001,6 +958,15 @@ function Mini({ label, value, highlight = false }: { label: string; value: strin
     <div className={cn("rounded-md border p-2", highlight ? "border-accent/35 bg-accent/10" : "border-white/10 bg-black/10")}>
       <p className="text-[10px] uppercase tracking-wide text-muted">{label}</p>
       <p className={cn("mt-1 font-black", highlight ? "text-accent" : "text-white")}>{value}</p>
+    </div>
+  );
+}
+
+function RadarStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-md border border-white/10 bg-black/25 p-3 text-center">
+      <p className="text-[10px] font-black uppercase text-muted">{label}</p>
+      <p className="mt-1 text-lg font-black text-white">{value}</p>
     </div>
   );
 }

@@ -351,6 +351,31 @@ function parsePostedLabel(html: string) {
   return "";
 }
 
+function freshnessScore(postedLabel: string) {
+  const value = postedLabel.toLowerCase();
+  if (!value) return 0.5;
+  if (value.includes("seconde")) return 1;
+  const number = Number(value.match(/[0-9]+/)?.[0] || 0);
+  if (value.includes("minute")) return number <= 30 ? 1 : 0.85;
+  if (value.includes("heure")) return number <= 2 ? 0.82 : number <= 8 ? 0.62 : 0.35;
+  if (value.includes("jour")) return number <= 1 ? 0.25 : 0.05;
+  return 0.5;
+}
+
+function heatSignal(likes: number | null, postedLabel: string, demand: number) {
+  const fresh = freshnessScore(postedLabel);
+  if (likes !== null) {
+    const ratio = likes * fresh;
+    if (likes >= 20 && fresh >= 0.6) return "Signal tres chaud: beaucoup de likes recents";
+    if (likes >= 8 && fresh >= 0.6) return "Signal chaud: likes rapides";
+    if (likes >= 4 && fresh >= 0.35) return "Signal correct: premiers likes";
+    return "Signal faible: likes trop bas";
+  }
+  if (demand >= 88 && fresh >= 0.6) return "Likes masques, mais niche forte + annonce fraiche";
+  if (demand >= 84 && fresh >= 0.6) return "Likes masques, niche correcte a verifier";
+  return "Signal likes masque: a verifier avant achat";
+}
+
 function parseConditionLabel(html: string) {
   const text = cleanText(html).toLowerCase();
   if (text.includes("neuf avec etiquette") || text.includes("neuf avec étiquette")) return "Neuf avec etiquette";
@@ -450,8 +475,11 @@ async function fetchSearch(scan: Scan) {
         const margin = scan.resale - price;
         const marginRate = margin / Math.max(price, 1);
         const sellable = sellabilityScore(item.title, scan);
-        const demandSignal = item.likes === null || item.likes >= 4 || scan.demand >= 86;
-        return price > 0 && price <= scan.max && price <= safe.maxSafeBuy && margin >= scan.minMargin && marginRate >= scan.minRate && sellable >= 6.2 && demandSignal;
+        const fresh = freshnessScore(item.postedLabel);
+        const hasHotLikes = item.likes !== null && item.likes >= 4 && fresh >= 0.35;
+        const hasStrongHiddenSignal = item.likes === null && scan.demand >= 84 && fresh >= 0.5 && marginRate >= Math.max(scan.minRate, 0.65);
+        const demandSignal = hasHotLikes || hasStrongHiddenSignal || scan.demand >= 90;
+        return price > 0 && price <= scan.max && price <= safe.maxSafeBuy && margin >= scan.minMargin && marginRate >= scan.minRate && sellable >= 6.4 && demandSignal;
       })
       .map((item, index): LiveOpportunity => {
         const listingPrice = item.listingPrice;
@@ -460,9 +488,10 @@ async function fetchSearch(scan: Scan) {
         const marginRate = margin / Math.max(listingPrice, 1);
         const sellable = sellabilityScore(item.title, scan);
         const likeBoost = item.likes === null ? 0 : Math.min(0.8, item.likes / 30);
+        const freshBoost = Math.min(0.5, freshnessScore(item.postedLabel) * 0.5);
         const score = Math.max(
           7.4,
-          Math.min(9.8, 6.1 + marginRate * 1.05 + scan.demand / 100 + sellable * 0.18 + likeBoost + (listingPrice <= safe.maxSafeBuy ? 0.45 : 0) - index * 0.08)
+          Math.min(9.8, 6.1 + marginRate * 1.05 + scan.demand / 100 + sellable * 0.18 + likeBoost + freshBoost + (listingPrice <= safe.maxSafeBuy ? 0.45 : 0) - index * 0.08)
         );
 
         return {
@@ -482,7 +511,7 @@ async function fetchSearch(scan: Scan) {
           marginRate: Number(marginRate.toFixed(2)),
           demand: scan.demand,
           likes: item.likes,
-          likeVelocity: likeVelocityLabel(item.likes, scan.demand),
+          likeVelocity: heatSignal(item.likes, item.postedLabel, scan.demand),
           popularity: Math.min(98, scan.demand + 4 - index),
           link: item.link,
           imageUrl: item.imageUrl,
