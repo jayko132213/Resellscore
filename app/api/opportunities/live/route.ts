@@ -170,6 +170,16 @@ const internetNicheScans: Scan[] = [
 ];
 
 const allScans = Array.from(new Map([...internetNicheScans, ...seasonalScans, ...extraScans, ...scans].map((scan) => [scan.id || scan.q, scan])).values());
+const blockedScanIds = new Set([
+  "signed-cookbooks",
+  "vintage-board-games",
+  "dior-saddle-inspired",
+  "brass-decor",
+  "lucite-accessories",
+  "mini-pouch",
+  "beaded-bag"
+]);
+const activeScanPool = allScans.filter((scan) => !blockedScanIds.has(scan.id || scan.q));
 
 const badListingWords = [
   "facture",
@@ -181,6 +191,11 @@ const badListingWords = [
   "accessoire",
   "piece",
   "pieces",
+  "livre",
+  "livres",
+  "livret",
+  "recette",
+  "cookbook",
   "cass",
   "hs",
   "ne marche pas",
@@ -458,8 +473,14 @@ function freshnessScore(postedLabel: string) {
   if (!value) return 0.5;
   if (value.includes("seconde")) return 1;
   const number = Number(value.match(/[0-9]+/)?.[0] || 0);
-  if (value.includes("minute")) return number <= 30 ? 1 : 0.85;
-  if (value.includes("heure")) return number <= 2 ? 0.82 : number <= 8 ? 0.62 : 0.35;
+  if (value.includes("minute")) {
+    if (number <= 3) return 1;
+    if (number <= 8) return 0.9;
+    if (number <= 15) return 0.72;
+    if (number <= 30) return 0.45;
+    return 0.2;
+  }
+  if (value.includes("heure")) return number <= 1 ? 0.25 : 0.08;
   if (value.includes("jour")) return number <= 1 ? 0.25 : 0.05;
   return 0.5;
 }
@@ -572,11 +593,36 @@ function readApiCondition(item: Record<string, unknown>) {
   return readApiText(status?.title) || readApiText(item.status_title) || readApiText(item.status) || "A verifier";
 }
 
+function relativeLabelFromAge(minutes: number | null) {
+  if (minutes === null) return "Annonce recente";
+  if (minutes <= 0) return "Il y a quelques secondes";
+  if (minutes < 60) return `Il y a ${minutes} minute${minutes > 1 ? "s" : ""}`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `Il y a ${hours} heure${hours > 1 ? "s" : ""}`;
+  const days = Math.floor(hours / 24);
+  return `Il y a ${days} jour${days > 1 ? "s" : ""}`;
+}
+
+function ageMinutesFromApiValue(value: unknown) {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    const timestamp = value > 100000000000 ? value : value * 1000;
+    return Math.max(0, Math.round((Date.now() - timestamp) / 60000));
+  }
+  if (typeof value === "string" && value.trim()) {
+    const numeric = Number(value);
+    if (Number.isFinite(numeric) && numeric > 1000000000) return ageMinutesFromApiValue(numeric);
+    const parsed = Date.parse(value);
+    if (Number.isFinite(parsed)) return Math.max(0, Math.round((Date.now() - parsed) / 60000));
+  }
+  return null;
+}
+
 function readApiPosted(item: Record<string, unknown>) {
-  return readApiText(item.created_at_ts)
-    || readApiText(item.created_at)
-    || readApiText(item.bumped_at)
-    || "Annonce recente";
+  return relativeLabelFromAge(
+    ageMinutesFromApiValue(item.created_at_ts)
+    ?? ageMinutesFromApiValue(item.created_at)
+    ?? ageMinutesFromApiValue(item.bumped_at)
+  );
 }
 
 function apiItemToCatalogItem(raw: unknown): CatalogItem | null {
@@ -716,8 +762,8 @@ function buildOpportunities(scan: Scan, items: DetectedItem[]) {
         const sellable = sellabilityScore(item.title, scan);
         const fresh = freshnessScore(item.postedLabel);
         const hasRealSignals = (item.source === "api" || item.source === "detail") && Boolean(item.imageUrl);
-        const hasHotLikes = item.likes !== null && item.likes >= 2 && fresh >= 0.25;
-        const isUltraFreshMargin = fresh >= 0.75 && marginRate >= Math.max(scan.minRate, 0.6);
+        const hasHotLikes = item.likes !== null && item.likes >= 4 && fresh >= 0.7;
+        const isUltraFreshMargin = fresh >= 0.9 && marginRate >= Math.max(scan.minRate, 0.6);
         const premiumPrice = price <= safe.maxSafeBuy || marginRate >= Math.max(scan.minRate, 0.55);
         return hasRealSignals && (hasHotLikes || isUltraFreshMargin) && price > 0 && price <= scan.max && premiumPrice && margin >= Math.max(10, Math.round(scan.minMargin * 0.7)) && sellable >= 6.1;
       })
@@ -780,11 +826,11 @@ export async function GET(request: Request) {
     .split(",")
     .map((item) => item.trim())
     .filter(Boolean);
-  const selectedScans = allScans
+  const selectedScans = activeScanPool
     .filter((scan) => requestedNiches.length === 0 || requestedNiches.includes(scan.niche || ""))
     .filter((scan) => requestedSearches.length === 0 || requestedSearches.includes(scan.id || scan.q))
     .slice(0, 12);
-  const activeScans = selectedScans.length > 0 ? selectedScans : allScans.slice(0, 12);
+  const activeScans = selectedScans.length > 0 ? selectedScans : activeScanPool.slice(0, 12);
   const results = (await Promise.all(activeScans.map(fetchSearch))).flat();
   const unique = Array.from(new Map(results.map((item) => [item.link, item])).values())
     .sort((a, b) => (b.score - a.score) || (b.margin - a.margin))

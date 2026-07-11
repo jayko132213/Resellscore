@@ -122,20 +122,14 @@ const nichePresets: NichePreset[] = [
     { id: "animal-print-sneakers", label: "Sneakers animal print" },
     { id: "metallic-sneakers", label: "Sneakers metalliques" },
     { id: "coach-y2k-bag", label: "Coach Y2K bags" },
-    { id: "dior-saddle-inspired", label: "Saddle bags" },
     { id: "raffia-bag", label: "Sacs raphia" },
-    { id: "beaded-bag", label: "Sacs perles" },
     { id: "jellycat", label: "Jellycat" },
     { id: "vintage-ipod", label: "iPod vintage" },
     { id: "walkman", label: "Walkman" },
     { id: "pyrex-rare", label: "Pyrex rare" },
     { id: "vaseline-glass", label: "Vaseline glass" },
     { id: "sterling-silver", label: "Argent massif" },
-    { id: "vintage-ad-sign", label: "Plaques pub" },
-    { id: "brass-decor", label: "Deco laiton" },
-    { id: "lucite-accessories", label: "Lucite" },
-    { id: "vintage-board-games", label: "Jeux vintage" },
-    { id: "signed-cookbooks", label: "Livres signes" }
+    { id: "vintage-ad-sign", label: "Plaques pub" }
   ] },
   { id: "nike", label: "Nike", description: "Running, sport, ACG, pulls, shorts propres.", searches: [{ id: "nike-running", label: "Nike running" }, { id: "nike-sport", label: "Nike sport" }, { id: "nike-acg", label: "Nike ACG" }, { id: "nike-pull", label: "Nike pull" }, { id: "Nike short vert", label: "Nike shorts" }, { id: "nike-track", label: "Nike track jacket" }] },
   { id: "ralph", label: "Ralph Lauren", description: "Pull torsade, chemises Oxford, casquettes, old money.", searches: [{ id: "ralph-knit", label: "Pull torsade" }, { id: "ralph-oxford", label: "Oxford" }, { id: "ralph-cap", label: "Casquettes" }, { id: "ralph-rugby", label: "Rugby shirt" }, { id: "ralph-linen", label: "Lin ete" }] },
@@ -146,9 +140,9 @@ const nichePresets: NichePreset[] = [
   { id: "denim", label: "Denim", description: "Levi's 501, trucker, jorts, mesures propres.", searches: [{ id: "denim-levis", label: "Levi's 501" }, { id: "denim-trucker", label: "Trucker jacket" }, { id: "denim-jorts", label: "Jorts" }] },
   { id: "designer", label: "Designer", description: "Stone Island, CP Company, pieces premium verifiables.", searches: [{ id: "designer-stone", label: "Stone Island" }, { id: "designer-cp", label: "CP Company" }, { id: "designer-fred-perry", label: "Fred Perry Oxford" }] },
   { id: "sneakers", label: "Sneakers 2026", description: "Speedcat, slim, metallic, running chunky, ballet sneakers.", searches: [{ id: "puma-speedcat", label: "Puma Speedcat" }, { id: "puma-h-street", label: "Puma H-Street" }, { id: "fila-vintage", label: "Fila vintage" }, { id: "slim-sneakers", label: "Slim sneakers" }] },
-  { id: "sacs", label: "Sacs", description: "Coach Y2K, raphia, perles, denim, mini bags.", searches: [{ id: "coach-y2k-bag", label: "Coach Y2K" }, { id: "raffia-bag", label: "Raphia ete" }, { id: "beaded-bag", label: "Perles / sequins" }, { id: "denim-bag", label: "Sac denim" }, { id: "mini-pouch", label: "Mini pouch" }] },
+  { id: "sacs", label: "Sacs", description: "Coach Y2K, raphia et denim seulement si vraie demande.", searches: [{ id: "coach-y2k-bag", label: "Coach Y2K" }, { id: "raffia-bag", label: "Raphia ete" }, { id: "denim-bag", label: "Sac denim" }] },
   { id: "accessoires", label: "Accessoires rapides", description: "Sacs banane, casquettes, lunettes, petits paniers rapides.", searches: [{ id: "bum-bag-vintage", label: "Sac banane vintage" }, { id: "cap-vintage-logo", label: "Casquette logo" }, { id: "sunglasses-y2k", label: "Lunettes Y2K" }, { id: "paperboy-hat", label: "Paperboy hat" }, { id: "fur-hat", label: "Bonnet/fur hat" }] },
-  { id: "objets", label: "Objets pepites", description: "Jouets, tech vintage, deco, vaisselle, jeux et livres signes.", searches: [{ id: "jellycat", label: "Jellycat" }, { id: "vintage-ipod", label: "iPod vintage" }, { id: "walkman", label: "Walkman" }, { id: "pyrex-rare", label: "Pyrex rare" }, { id: "sterling-silver", label: "Argent massif" }, { id: "vintage-board-games", label: "Jeux vintage" }] },
+  { id: "objets", label: "Objets pepites", description: "Seulement objets connus avec vraie demande verifiable.", searches: [{ id: "jellycat", label: "Jellycat" }, { id: "vintage-ipod", label: "iPod vintage" }, { id: "walkman", label: "Walkman" }, { id: "pyrex-rare", label: "Pyrex rare" }, { id: "sterling-silver", label: "Argent massif" }] },
   { id: "tech", label: "Tech", description: "Seulement si preuves, facture et risque compris.", searches: [{ id: "tech-iphone", label: "iPhone" }] },
   { id: "ete", label: "Saison ete", description: "Jupes, robes, chemisiers, pieces propres et lumineuses.", searches: [{ id: "summer-skirt-premium", label: "Jupes" }, { id: "summer-dress-premium", label: "Robes" }, { id: "summer-blouse", label: "Chemisiers" }] },
   { id: "hiver", label: "Saison hiver", description: "Mailles, laine, doudounes, achats avant la demande.", searches: [{ id: "winter-knit", label: "Mailles" }, { id: "winter-puffer", label: "Doudounes" }] }
@@ -253,7 +247,7 @@ export function WeeklyOpportunities() {
     }
 
     scan();
-    const interval = window.setInterval(scan, 45000);
+    const interval = window.setInterval(scan, 15000);
 
     return () => {
       cancelled = true;
@@ -451,7 +445,7 @@ export function WeeklyOpportunities() {
       <section className="mt-6 rounded-lg border border-white/10 bg-panel p-5 shadow-glow">
         <div className="mb-5 grid gap-3 border-b border-white/10 pb-5 md:grid-cols-3">
           <StepCard index="1" title="Regle tes filtres" text="Choisis budget, niches, marques ou mots cles." />
-          <StepCard index="2" title="Bot actif" text="Le radar relance tout seul sans rafraichir la page." />
+          <StepCard index="2" title="Bot actif" text="Le radar relance toutes les 15 secondes sans rafraichir." />
           <StepCard index="3" title="Tu ouvres les pepites" text="Prix, marge, etat et signal sont lisibles direct." />
         </div>
 
@@ -615,7 +609,7 @@ export function WeeklyOpportunities() {
               Annonces directes premium
             </p>
             <p className="mt-2 text-sm leading-6 text-muted">
-              Mode strict: le bot n'affiche une annonce que si le prix, l'image et les likes sont lus sur la vraie fiche. Moins de cartes, mais moins de hasard.
+              Mode rapide: le bot lit le catalogue Vinted en premier, filtre les annonces trop vieilles et evite les niches a fausses marges.
             </p>
           </div>
           <span className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-accent/25 bg-accent/10 px-4 text-sm font-black text-accent">
@@ -725,7 +719,7 @@ export function WeeklyOpportunities() {
           </div>
         ) : (
           <div className="mt-4 rounded-md border border-white/10 bg-white/[0.03] p-4 text-sm leading-6 text-muted">
-            {liveLoading ? "Scan strict en cours: prix, image et likes reels..." : liveMessage || "Aucune annonce assez fiable pour le moment."}
+            {liveLoading ? "Scan rapide en cours: annonces recentes, prix, image, likes..." : liveMessage || "Aucune annonce assez fiable pour le moment."}
           </div>
         )}
       </section>
