@@ -649,8 +649,8 @@ export function WeeklyOpportunities() {
                     {item.imageUrl ? (
                       <img src={item.imageUrl} alt="" className="h-full w-full object-cover" />
                     ) : (
-                      <div className="grid h-full place-items-center bg-gradient-to-br from-accent/15 to-white/5 p-4 text-center text-xs font-black uppercase text-accent">
-                        {item.category}
+                      <div className="grid h-full place-items-center bg-gradient-to-br from-white/[0.06] to-accent/[0.06] p-4 text-center text-xs font-black uppercase text-muted">
+                        Image non lue
                       </div>
                     )}
                   </div>
@@ -685,9 +685,9 @@ export function WeeklyOpportunities() {
                     </div>
 
                     <div className="mt-3 grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
-                      <Mini label="Marge" value={`+${item.margin} EUR`} highlight />
-                      <Mini label="Likes" value={item.likes === null ? "masques" : String(item.likes)} />
-                      <Mini label="Demande" value={`${item.demand}%`} />
+                      <Mini label="Marge estimee" value={`+${item.margin} EUR`} highlight />
+                      <Mini label="Likes" value={item.likes === null ? "non lus" : String(item.likes)} />
+                      <Mini label="Potentiel" value={item.likes === null ? "a verifier" : `${item.demand}%`} />
                       <Mini label="Reserve" value={`${item.safetyReserve} EUR`} />
                     </div>
 

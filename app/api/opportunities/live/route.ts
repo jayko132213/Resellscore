@@ -347,9 +347,32 @@ function parseNearbyLikes(fragment: string) {
 }
 
 function parseNearbyImage(fragment: string) {
-  const match = fragment.match(/https?:\\?\/\\?\/[^"'\s]+(?:images|photos|img)[^"'\s]+?\.(?:jpg|jpeg|png|webp)/i);
-  if (!match?.[0]) return "";
-  return match[0].replace(/\\\//g, "/");
+  const decoded = fragment
+    .replace(/\\u002F/g, "/")
+    .replace(/\\\//g, "/")
+    .replace(/&amp;/g, "&");
+  const patterns = [
+    /"(?:url|image_url|image|src)"\s*:\s*"(https?:\/\/[^"]*(?:vinted|vinted\.net|images)[^"]+)"/i,
+    /(https?:\/\/images\d*\.vinted\.net\/[^"'\s<>\\]+)/i,
+    /(https?:\/\/[^"'\s<>\\]+(?:\.jpg|\.jpeg|\.png|\.webp)(?:\?[^"'\s<>\\]+)?)/i
+  ];
+
+  for (const pattern of patterns) {
+    const match = decoded.match(pattern);
+    if (match?.[1]) return cleanImageUrl(match[1]);
+  }
+
+  const srcMatch = decoded.match(/(?:src|data-src)=["']([^"']+)["']/i);
+  if (srcMatch?.[1] && srcMatch[1].includes("vinted")) return cleanImageUrl(srcMatch[1]);
+  return "";
+}
+
+function cleanImageUrl(value: string) {
+  return value
+    .replace(/\\\//g, "/")
+    .replace(/&quot;.*$/g, "")
+    .replace(/[),]+$/g, "")
+    .trim();
 }
 
 function parseNearbyPostedLabel(fragment: string) {
@@ -414,7 +437,9 @@ function parseFavoriteCount(html: string) {
   ];
 
   for (const pattern of patterns) {
-    const value = Number(pattern.exec(html)?.[1] || 0);
+    const match = pattern.exec(html);
+    if (!match?.[1]) continue;
+    const value = Number(match[1]);
     if (Number.isFinite(value) && value >= 0 && value < 100000) return value;
   }
 
@@ -578,19 +603,23 @@ async function fetchSearch(scan: Scan) {
       })
       .map((item, index): LiveOpportunity => {
         const listingPrice = item.listingPrice;
-        const safe = safeBuyPrice(scan.resale);
-        const margin = scan.resale - listingPrice;
+        const likes = item.likes ?? null;
+        const resaleTarget = Math.max(
+          listingPrice + 1,
+          Math.round(scan.resale * (likes === null ? 0.9 : 1) * (item.source === "catalog" ? 0.92 : 1))
+        );
+        const safe = safeBuyPrice(resaleTarget);
+        const margin = resaleTarget - listingPrice;
         const marginRate = margin / Math.max(listingPrice, 1);
         const sellable = sellabilityScore(item.title, scan);
-        const likes = item.likes ?? null;
         const likeBoost = likes === null ? 0 : Math.min(0.8, likes / 30);
         const freshBoost = Math.min(0.5, freshnessScore(item.postedLabel) * 0.5);
         const catalogPenalty = item.source === "catalog" ? 0.25 : 0;
-        const score = Math.max(
-          7.1,
-          Math.min(9.8, 6.1 + marginRate * 1.05 + scan.demand / 100 + sellable * 0.18 + likeBoost + freshBoost + (listingPrice <= safe.maxSafeBuy ? 0.45 : 0) - catalogPenalty - index * 0.08)
-        );
+        const missingSignalPenalty = (likes === null ? 0.7 : 0) + (item.imageUrl ? 0 : 0.35);
+        const scoreCeiling = likes === null || !item.imageUrl ? 8.3 : 9.8;
+        const score = Math.max(6.4, Math.min(scoreCeiling, 6.1 + marginRate * 1.05 + scan.demand / 100 + sellable * 0.18 + likeBoost + freshBoost + (listingPrice <= safe.maxSafeBuy ? 0.45 : 0) - catalogPenalty - missingSignalPenalty - index * 0.08));
         const sourceLabel = item.source === "catalog" ? "Prix catalogue lu, fiche a verifier" : "Prix fiche lu";
+        const demandScore = likes === null ? Math.min(70, scan.demand) : scan.demand;
 
         return {
           id: `${scan.q}-${index}-${item.link}`.replace(/\W+/g, "-").slice(0, 90),
@@ -600,27 +629,27 @@ async function fetchSearch(scan: Scan) {
           buy: listingPrice,
           listingPrice,
           retail: scan.retail,
-          resale: scan.resale,
+          resale: resaleTarget,
           safeResale: safe.safeResale,
           maxSafeBuy: safe.maxSafeBuy,
           safetyReserve: safe.safetyReserve,
           x2Rule: listingPrice * 2 <= safe.safeResale,
           margin,
           marginRate: Number(marginRate.toFixed(2)),
-          demand: scan.demand,
+          demand: demandScore,
           likes,
-          likeVelocity: heatSignal(likes, item.postedLabel || "", scan.demand),
-          popularity: Math.min(98, scan.demand + 4 - index),
+          likeVelocity: heatSignal(likes, item.postedLabel || "", demandScore),
+          popularity: Math.min(98, demandScore + 4 - index),
           link: item.link,
           imageUrl: item.imageUrl || "",
-          signal: `${sourceLabel} + style vendable ${sellable.toFixed(1)}/10`,
-          reason: `Prix annonce: ${listingPrice} EUR. Revente visee: ${scan.resale} EUR. Revente prudente apres marge de securite: ${safe.safeResale} EUR. Achat max conseille: ${safe.maxSafeBuy} EUR.${item.source === "catalog" ? " Ouvre l'annonce pour confirmer avant achat." : ""}`,
+          signal: `${sourceLabel} + style vendable ${sellable.toFixed(1)}/10${likes === null ? " + likes non lus" : ""}`,
+          reason: `Prix annonce: ${listingPrice} EUR. Revente visee prudente: ${resaleTarget} EUR. Revente apres marge de securite: ${safe.safeResale} EUR. Achat max conseille: ${safe.maxSafeBuy} EUR.${item.source === "catalog" ? " Ouvre l'annonce pour confirmer avant achat." : ""}`,
           risk: scan.risk,
           condition: item.condition || "A verifier",
           sellerSignal: `Si le prix est un peu haut, regarde le dressing vendeur pour tenter un lot et viser -30% a -40%.`,
           spottedAt: `Live ${new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}`,
           postedLabel: item.postedLabel || `Detecte a ${new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}`,
-          quickDescription: quickDescription(scan, listingPrice, scan.resale, likes, item.condition || "A verifier")
+          quickDescription: quickDescription(scan, listingPrice, resaleTarget, likes, item.condition || "A verifier")
         };
       });
   } catch {
