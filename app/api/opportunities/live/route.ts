@@ -56,7 +56,7 @@ type CatalogItem = {
   imageUrl?: string;
   postedLabel?: string;
   condition?: string;
-  source?: "catalog" | "detail";
+  source?: "api" | "catalog" | "detail";
 };
 
 type DetectedItem = CatalogItem & {
@@ -65,7 +65,7 @@ type DetectedItem = CatalogItem & {
   imageUrl: string;
   postedLabel: string;
   condition: string;
-  source: "catalog" | "detail";
+  source: "api" | "catalog" | "detail";
 };
 
 const scans: Scan[] = [
@@ -528,6 +528,116 @@ function isDetectedItem(item: DetectedItem | null): item is DetectedItem {
   return Boolean(item?.listingPrice);
 }
 
+function readApiPrice(value: unknown) {
+  if (typeof value === "number" && Number.isFinite(value)) return Math.round(value);
+  if (typeof value === "string") {
+    const number = Number(value.replace(",", "."));
+    if (Number.isFinite(number)) return Math.round(number);
+  }
+  if (value && typeof value === "object") {
+    const record = value as Record<string, unknown>;
+    return readApiPrice(record.amount || record.value || record.price);
+  }
+  return null;
+}
+
+function readApiText(value: unknown) {
+  return typeof value === "string" ? cleanText(value) : "";
+}
+
+function readApiImage(item: Record<string, unknown>) {
+  const photo = item.photo && typeof item.photo === "object" ? item.photo as Record<string, unknown> : null;
+  const photos = Array.isArray(item.photos) ? item.photos : [];
+  const firstPhoto = photos[0] && typeof photos[0] === "object" ? photos[0] as Record<string, unknown> : null;
+  const source = photo || firstPhoto;
+  if (!source) return "";
+
+  const high = source.high_resolution && typeof source.high_resolution === "object" ? source.high_resolution as Record<string, unknown> : null;
+  return cleanImageUrl(
+    readApiText(source.url)
+    || readApiText(source.full_size_url)
+    || readApiText(high?.url)
+    || readApiText(source.thumbnail_url)
+  );
+}
+
+function readApiLikes(item: Record<string, unknown>) {
+  const raw = item.favourite_count ?? item.favorite_count ?? item.favorites_count ?? item.likes_count;
+  const value = typeof raw === "number" ? raw : Number(raw);
+  return Number.isFinite(value) && value >= 0 ? value : null;
+}
+
+function readApiCondition(item: Record<string, unknown>) {
+  const status = item.status && typeof item.status === "object" ? item.status as Record<string, unknown> : null;
+  return readApiText(status?.title) || readApiText(item.status_title) || readApiText(item.status) || "A verifier";
+}
+
+function readApiPosted(item: Record<string, unknown>) {
+  return readApiText(item.created_at_ts)
+    || readApiText(item.created_at)
+    || readApiText(item.bumped_at)
+    || "Annonce recente";
+}
+
+function apiItemToCatalogItem(raw: unknown): CatalogItem | null {
+  if (!raw || typeof raw !== "object") return null;
+  const item = raw as Record<string, unknown>;
+  const id = readApiText(item.id);
+  const title = readApiText(item.title);
+  const url = readApiText(item.url);
+  const price = readApiPrice(item.price) || readApiPrice(item.total_item_price);
+  const link = url || (id ? `https://www.vinted.fr/items/${id}` : "");
+  const imageUrl = readApiImage(item);
+  if (!link || !title || !price || !looksReliable(title)) return null;
+
+  const brand = readApiText(item.brand_title);
+  const size = readApiText(item.size_title);
+  const fullTitle = [brand, title, size].filter(Boolean).join(" - ");
+
+  return {
+    link,
+    title: fullTitle || title,
+    listingPrice: price,
+    likes: readApiLikes(item),
+    imageUrl,
+    postedLabel: readApiPosted(item),
+    condition: readApiCondition(item),
+    source: "api"
+  };
+}
+
+async function fetchApiSearch(scan: Scan) {
+  const params = new URLSearchParams({
+    search_text: scan.q,
+    price_to: String(scan.max),
+    order: "newest_first",
+    per_page: "48"
+  });
+  if (scan.min) params.set("price_from", String(scan.min));
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 4500);
+  try {
+    const response = await fetch(`https://www.vinted.fr/api/v2/catalog/items?${params.toString()}`, {
+      signal: controller.signal,
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36",
+        "Accept": "application/json, text/plain, */*",
+        "Accept-Language": "fr-FR,fr;q=0.9,en;q=0.7",
+        "Referer": "https://www.vinted.fr/"
+      },
+      cache: "no-store"
+    });
+    clearTimeout(timeout);
+    if (!response.ok) return [];
+    const data = await response.json() as { items?: unknown[] };
+    return (data.items || []).map(apiItemToCatalogItem).filter((item): item is CatalogItem => Boolean(item));
+  } catch {
+    clearTimeout(timeout);
+    return [];
+  }
+}
+
 async function fetchListingDetail(item: CatalogItem): Promise<DetectedItem | null> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 4500);
@@ -560,17 +670,21 @@ async function fetchListingDetail(item: CatalogItem): Promise<DetectedItem | nul
 }
 
 async function fetchSearch(scan: Scan) {
-  const params = new URLSearchParams({
-    search_text: scan.q,
-    price_to: String(scan.max),
-    order: "newest_first"
-  });
-  if (scan.min) params.set("price_from", String(scan.min));
-  const url = `https://www.vinted.fr/catalog?${params.toString()}`;
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 5500);
-
   try {
+    const apiItems = await fetchApiSearch(scan);
+    if (apiItems.length > 0) {
+      return buildOpportunities(scan, apiItems.map(normalizeCatalogItem).filter(isDetectedItem));
+    }
+
+    const params = new URLSearchParams({
+      search_text: scan.q,
+      price_to: String(scan.max),
+      order: "newest_first"
+    });
+    if (scan.min) params.set("price_from", String(scan.min));
+    const url = `https://www.vinted.fr/catalog?${params.toString()}`;
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 4500);
     const response = await fetch(url, {
       signal: controller.signal,
       headers: {
@@ -585,8 +699,14 @@ async function fetchSearch(scan: Scan) {
 
     const html = await response.text();
     const checkedItems = await Promise.all(extractLinks(html).map(fetchListingDetail));
+    return buildOpportunities(scan, checkedItems.filter(isDetectedItem));
+  } catch {
+    return [];
+  }
+}
 
-    return checkedItems
+function buildOpportunities(scan: Scan, items: DetectedItem[]) {
+  return items
       .filter(isDetectedItem)
       .filter((item) => {
         const price = item.listingPrice;
@@ -595,10 +715,11 @@ async function fetchSearch(scan: Scan) {
         const marginRate = margin / Math.max(price, 1);
         const sellable = sellabilityScore(item.title, scan);
         const fresh = freshnessScore(item.postedLabel);
-        const hasRealSignals = item.source === "detail" && Boolean(item.imageUrl) && item.likes !== null;
-        const hasHotLikes = item.likes !== null && item.likes >= 3 && fresh >= 0.35;
+        const hasRealSignals = (item.source === "api" || item.source === "detail") && Boolean(item.imageUrl);
+        const hasHotLikes = item.likes !== null && item.likes >= 2 && fresh >= 0.25;
+        const isUltraFreshMargin = fresh >= 0.75 && marginRate >= Math.max(scan.minRate, 0.6);
         const premiumPrice = price <= safe.maxSafeBuy || marginRate >= Math.max(scan.minRate, 0.55);
-        return hasRealSignals && hasHotLikes && price > 0 && price <= scan.max && premiumPrice && margin >= Math.max(12, Math.round(scan.minMargin * 0.8)) && sellable >= 6.4;
+        return hasRealSignals && (hasHotLikes || isUltraFreshMargin) && price > 0 && price <= scan.max && premiumPrice && margin >= Math.max(10, Math.round(scan.minMargin * 0.7)) && sellable >= 6.1;
       })
       .map((item, index): LiveOpportunity => {
         const listingPrice = item.listingPrice;
@@ -613,7 +734,7 @@ async function fetchSearch(scan: Scan) {
         const sellable = sellabilityScore(item.title, scan);
         const likeBoost = likes === null ? 0 : Math.min(0.8, likes / 30);
         const freshBoost = Math.min(0.5, freshnessScore(item.postedLabel) * 0.5);
-        const score = Math.max(6.8, Math.min(9.5, 5.8 + marginRate * 0.95 + sellable * 0.2 + likeBoost + freshBoost + (listingPrice <= safe.maxSafeBuy ? 0.6 : 0) - index * 0.1));
+        const score = Math.max(6.9, Math.min(9.6, 5.9 + marginRate * 0.95 + sellable * 0.2 + likeBoost + freshBoost + (listingPrice <= safe.maxSafeBuy ? 0.6 : 0) - index * 0.1));
         const demandScore = Math.min(98, Math.round(52 + likes * 2.4 + freshnessScore(item.postedLabel) * 18));
 
         return {
@@ -637,7 +758,7 @@ async function fetchSearch(scan: Scan) {
           popularity: Math.min(98, demandScore + 4 - index),
           link: item.link,
           imageUrl: item.imageUrl || "",
-          signal: `Prix, image et likes lus sur la fiche + style vendable ${sellable.toFixed(1)}/10`,
+          signal: `${item.source === "api" ? "Catalogue Vinted lu" : "Fiche Vinted lue"} + image + prix + style vendable ${sellable.toFixed(1)}/10`,
           reason: `Prix annonce: ${listingPrice} EUR. Likes lus: ${likes}. Revente visee prudente: ${resaleTarget} EUR. Achat max conseille: ${safe.maxSafeBuy} EUR.`,
           risk: scan.risk,
           condition: item.condition || "A verifier",
@@ -647,10 +768,6 @@ async function fetchSearch(scan: Scan) {
           quickDescription: quickDescription(scan, listingPrice, resaleTarget, likes, item.condition || "A verifier")
         };
       });
-  } catch {
-    clearTimeout(timeout);
-    return [];
-  }
 }
 
 export async function GET(request: Request) {
@@ -666,8 +783,8 @@ export async function GET(request: Request) {
   const selectedScans = allScans
     .filter((scan) => requestedNiches.length === 0 || requestedNiches.includes(scan.niche || ""))
     .filter((scan) => requestedSearches.length === 0 || requestedSearches.includes(scan.id || scan.q))
-    .slice(0, 6);
-  const activeScans = selectedScans.length > 0 ? selectedScans : allScans.slice(0, 6);
+    .slice(0, 12);
+  const activeScans = selectedScans.length > 0 ? selectedScans : allScans.slice(0, 12);
   const results = (await Promise.all(activeScans.map(fetchSearch))).flat();
   const unique = Array.from(new Map(results.map((item) => [item.link, item])).values())
     .sort((a, b) => (b.score - a.score) || (b.margin - a.margin))
