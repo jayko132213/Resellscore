@@ -19,9 +19,15 @@ type LiveOpportunity = {
   listingPrice: number;
   retail: number;
   resale: number;
+  safeResale: number;
+  maxSafeBuy: number;
+  safetyReserve: number;
+  x2Rule: boolean;
   margin: number;
   marginRate: number;
   demand: number;
+  likes: number | null;
+  likeVelocity: string;
   popularity: number;
   link: string;
   signal: string;
@@ -81,7 +87,9 @@ const nichePresets: NichePreset[] = [
   { id: "workwear", label: "Workwear", description: "Carhartt, vestes solides, coupes demandees.", searches: [{ id: "workwear-carhartt", label: "Carhartt" }] },
   { id: "denim", label: "Denim", description: "Levi's 501, mesures propres, pieces safe.", searches: [{ id: "denim-levis", label: "Levi's 501" }] },
   { id: "designer", label: "Designer", description: "Stone Island et pieces premium verifiables.", searches: [{ id: "designer-stone", label: "Stone Island" }] },
-  { id: "tech", label: "Tech", description: "Seulement si preuves, facture et risque compris.", searches: [{ id: "tech-iphone", label: "iPhone" }] }
+  { id: "tech", label: "Tech", description: "Seulement si preuves, facture et risque compris.", searches: [{ id: "tech-iphone", label: "iPhone" }] },
+  { id: "ete", label: "Saison ete", description: "Jupes, robes, chemisiers, pieces propres et lumineuses.", searches: [{ id: "summer-skirt-premium", label: "Jupes" }, { id: "summer-dress-premium", label: "Robes" }, { id: "summer-blouse", label: "Chemisiers" }] },
+  { id: "hiver", label: "Saison hiver", description: "Mailles, laine, doudounes, achats avant la demande.", searches: [{ id: "winter-knit", label: "Mailles" }, { id: "winter-puffer", label: "Doudounes" }] }
 ];
 
 const trends: Trend[] = [
@@ -526,6 +534,12 @@ export function WeeklyOpportunities() {
             Si aucun sous-filtre n'est choisi, le bot scanne toutes les sous-recherches des niches cochees.
           </p>
         </div>
+
+        <div className="mt-5 grid gap-3 md:grid-cols-3">
+          <MethodCard title="Prix max safe" text="Le radar prend la revente estimee, retire environ 15% de securite, puis divise par deux." />
+          <MethodCard title="Demande" text="Il garde les annonces avec signaux de likes quand ils sont lisibles, ou niches deja fortes." />
+          <MethodCard title="Lot vendeur" text="Si une piece est trop chere, regarde le dressing du vendeur pour negocier un lot." />
+        </div>
       </section>
 
       <section className="mt-6 rounded-lg border border-accent/20 bg-panel p-5 shadow-glow">
@@ -582,14 +596,18 @@ export function WeeklyOpportunities() {
                   </div>
                   <div className="mt-3 grid grid-cols-2 gap-2 text-xs sm:grid-cols-3">
                     <Mini label="Prix annonce" value={`${item.listingPrice || item.buy} EUR`} highlight />
-                    <Mini label="Prix neuf estime" value={`${item.retail} EUR`} />
                     <Mini label="Revente visee" value={`${item.resale} EUR`} />
+                    <Mini label="Revente prudente" value={`${item.safeResale} EUR`} />
+                    <Mini label="Achat max safe" value={`${item.maxSafeBuy} EUR`} highlight />
                     <Mini label="Marge brute" value={`+${item.margin} EUR`} highlight />
-                    <Mini label="Marge" value={`${Math.round(item.marginRate * 100)}%`} />
+                    <Mini label="Regle x2" value={item.x2Rule ? "OK" : "Non"} />
+                    <Mini label="Likes" value={item.likes === null ? "non lus" : String(item.likes)} />
                     <Mini label="Demande" value={`${item.demand}%`} />
                   </div>
                   <p className="mt-3 text-sm leading-6 text-slate-300">{item.signal} - {item.reason}</p>
+                  <p className="mt-2 text-xs leading-5 text-slate-300">Signal demande : {item.likeVelocity}</p>
                   <p className="mt-2 text-xs leading-5 text-amber-100">Risque : {item.risk}</p>
+                  <p className="mt-2 text-xs leading-5 text-accent">{item.sellerSignal}</p>
                   <p className="mt-3 inline-flex items-center gap-2 text-xs font-bold text-accent">
                     Ouvrir l'annonce Vinted
                     <ExternalLink size={13} />
@@ -692,6 +710,15 @@ function Mini({ label, value, highlight = false }: { label: string; value: strin
     <div className={cn("rounded-md border p-2", highlight ? "border-accent/35 bg-accent/10" : "border-white/10 bg-black/10")}>
       <p className="text-[10px] uppercase tracking-wide text-muted">{label}</p>
       <p className={cn("mt-1 font-black", highlight ? "text-accent" : "text-white")}>{value}</p>
+    </div>
+  );
+}
+
+function MethodCard({ title, text }: { title: string; text: string }) {
+  return (
+    <div className="rounded-md border border-white/10 bg-white/[0.03] p-3">
+      <p className="text-xs font-black uppercase text-accent">{title}</p>
+      <p className="mt-2 text-xs leading-5 text-muted">{text}</p>
     </div>
   );
 }

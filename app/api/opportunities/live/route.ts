@@ -9,9 +9,15 @@ type LiveOpportunity = {
   listingPrice: number;
   retail: number;
   resale: number;
+  safeResale: number;
+  maxSafeBuy: number;
+  safetyReserve: number;
+  x2Rule: boolean;
   margin: number;
   marginRate: number;
   demand: number;
+  likes: number | null;
+  likeVelocity: string;
   popularity: number;
   link: string;
   signal: string;
@@ -27,6 +33,7 @@ type Scan = {
   niche?: string;
   subcategory?: string;
   q: string;
+  min?: number;
   max: number;
   category: string;
   retail: number;
@@ -35,6 +42,7 @@ type Scan = {
   minMargin: number;
   minRate: number;
   risk: string;
+  season?: string;
 };
 
 const scans: Scan[] = [
@@ -71,7 +79,15 @@ const extraScans: Scan[] = [
   { id: "tech-iphone", niche: "tech", subcategory: "iPhone", q: "iPhone facture debloque", max: 350, category: "Tech", retail: 750, resale: 520, demand: 86, minMargin: 70, minRate: 0.25, risk: "Verifier facture, IMEI, batterie et compte retire" }
 ];
 
-const allScans = Array.from(new Map([...extraScans, ...scans].map((scan) => [scan.id || scan.q, scan])).values());
+const seasonalScans: Scan[] = [
+  { id: "summer-skirt-premium", niche: "ete", subcategory: "Jupes premium", q: "jupe vintage soie", min: 30, max: 65, category: "Ete", retail: 120, resale: 82, demand: 78, minMargin: 24, minRate: 0.48, risk: "Verifier doublure, taches et transparence", season: "ete" },
+  { id: "summer-dress-premium", niche: "ete", subcategory: "Robes propres", q: "robe vintage ete", min: 30, max: 70, category: "Ete", retail: 130, resale: 88, demand: 80, minMargin: 25, minRate: 0.46, risk: "Verifier taille, fermeture et taches", season: "ete" },
+  { id: "summer-blouse", niche: "ete", subcategory: "Chemisiers", q: "chemisier vintage brode", min: 25, max: 55, category: "Ete", retail: 95, resale: 64, demand: 77, minMargin: 18, minRate: 0.45, risk: "Verifier aisselles, boutons et matiere", season: "ete" },
+  { id: "winter-knit", niche: "hiver", subcategory: "Mailles hiver", q: "pull laine vintage", min: 25, max: 60, category: "Hiver", retail: 120, resale: 82, demand: 82, minMargin: 24, minRate: 0.5, risk: "Verifier trous, bouloches et col", season: "hiver" },
+  { id: "winter-puffer", niche: "hiver", subcategory: "Doudounes", q: "doudoune vintage plume", min: 60, max: 180, category: "Hiver", retail: 260, resale: 220, demand: 84, minMargin: 55, minRate: 0.42, risk: "Verifier zip, gonflant, taches et authenticite", season: "hiver" }
+];
+
+const allScans = Array.from(new Map([...seasonalScans, ...extraScans, ...scans].map((scan) => [scan.id || scan.q, scan])).values());
 
 const badListingWords = [
   "facture",
@@ -170,7 +186,7 @@ function looksReliable(title: string) {
   return !badListingWords.some((word) => value.includes(word));
 }
 
-function sellabilityScore(title: string, scan: typeof scans[number]) {
+function sellabilityScore(title: string, scan: Scan) {
   const value = title.toLowerCase();
   const titleWords = value.split(/\s+/).filter(Boolean);
   const hasScanBrand = scan.q.toLowerCase().split(/\s+/).some((word) => word.length > 3 && value.includes(word));
@@ -246,6 +262,40 @@ function parseDetailTitle(html: string, fallback: string) {
     .trim() || fallback;
 }
 
+function parseFavoriteCount(html: string) {
+  const patterns = [
+    /"favourite_count"\s*:\s*(\d+)/i,
+    /"favorite_count"\s*:\s*(\d+)/i,
+    /"favorites_count"\s*:\s*(\d+)/i,
+    /"likes_count"\s*:\s*(\d+)/i,
+    /(\d+)\s*(?:favoris|likes|j'aime)/i
+  ];
+
+  for (const pattern of patterns) {
+    const value = Number(pattern.exec(html)?.[1] || 0);
+    if (Number.isFinite(value) && value >= 0 && value < 100000) return value;
+  }
+
+  return null;
+}
+
+function likeVelocityLabel(likes: number | null, demand: number) {
+  if (likes === null) return demand >= 86 ? "Demande probable forte, likes non lisibles" : "Likes non lisibles";
+  if (likes >= 20) return "Tres fort: deja 20+ likes";
+  if (likes >= 10) return "Fort: 10+ likes";
+  if (likes >= 4) return "Correct: premiers likes visibles";
+  return "Faible: peu de likes visibles";
+}
+
+function safeBuyPrice(resale: number) {
+  const safeResale = Math.round(resale * 0.85);
+  return {
+    safeResale,
+    maxSafeBuy: Math.max(1, Math.floor(safeResale / 2)),
+    safetyReserve: Math.max(1, resale - safeResale)
+  };
+}
+
 async function fetchListingDetail(item: { link: string; title: string }) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 7000);
@@ -265,16 +315,23 @@ async function fetchListingDetail(item: { link: string; title: string }) {
     const html = await response.text();
     const listingPrice = parseDetailPrice(html);
     const title = parseDetailTitle(html, item.title);
+    const likes = parseFavoriteCount(html);
     if (!listingPrice || !looksReliable(title)) return null;
-    return { ...item, title, listingPrice };
+    return { ...item, title, listingPrice, likes };
   } catch {
     clearTimeout(timeout);
     return null;
   }
 }
 
-async function fetchSearch(scan: typeof scans[number]) {
-  const url = `https://www.vinted.fr/catalog?search_text=${encodeURIComponent(scan.q)}&price_to=${scan.max}&order=newest_first`;
+async function fetchSearch(scan: Scan) {
+  const params = new URLSearchParams({
+    search_text: scan.q,
+    price_to: String(scan.max),
+    order: "newest_first"
+  });
+  if (scan.min) params.set("price_from", String(scan.min));
+  const url = `https://www.vinted.fr/catalog?${params.toString()}`;
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 8000);
 
@@ -295,22 +352,26 @@ async function fetchSearch(scan: typeof scans[number]) {
     const checkedItems = await Promise.all(extractLinks(html).map(fetchListingDetail));
 
     return checkedItems
-      .filter((item): item is { link: string; title: string; listingPrice: number } => Boolean(item))
+      .filter((item): item is { link: string; title: string; listingPrice: number; likes: number | null } => Boolean(item))
       .filter((item) => {
         const price = item.listingPrice;
+        const safe = safeBuyPrice(scan.resale);
         const margin = scan.resale - price;
         const marginRate = margin / Math.max(price, 1);
         const sellable = sellabilityScore(item.title, scan);
-        return price > 0 && price <= scan.max && margin >= scan.minMargin && marginRate >= scan.minRate && sellable >= 6.2;
+        const demandSignal = item.likes === null || item.likes >= 4 || scan.demand >= 86;
+        return price > 0 && price <= scan.max && price <= safe.maxSafeBuy && margin >= scan.minMargin && marginRate >= scan.minRate && sellable >= 6.2 && demandSignal;
       })
       .map((item, index): LiveOpportunity => {
         const listingPrice = item.listingPrice;
+        const safe = safeBuyPrice(scan.resale);
         const margin = scan.resale - listingPrice;
         const marginRate = margin / Math.max(listingPrice, 1);
         const sellable = sellabilityScore(item.title, scan);
+        const likeBoost = item.likes === null ? 0 : Math.min(0.8, item.likes / 30);
         const score = Math.max(
           7.4,
-          Math.min(9.8, 6.2 + marginRate * 1.05 + scan.demand / 100 + sellable * 0.18 + (listingPrice <= scan.max * 0.75 ? 0.35 : 0) - index * 0.08)
+          Math.min(9.8, 6.1 + marginRate * 1.05 + scan.demand / 100 + sellable * 0.18 + likeBoost + (listingPrice <= safe.maxSafeBuy ? 0.45 : 0) - index * 0.08)
         );
 
         return {
@@ -322,16 +383,22 @@ async function fetchSearch(scan: typeof scans[number]) {
           listingPrice,
           retail: scan.retail,
           resale: scan.resale,
+          safeResale: safe.safeResale,
+          maxSafeBuy: safe.maxSafeBuy,
+          safetyReserve: safe.safetyReserve,
+          x2Rule: listingPrice * 2 <= safe.safeResale,
           margin,
           marginRate: Number(marginRate.toFixed(2)),
           demand: scan.demand,
+          likes: item.likes,
+          likeVelocity: likeVelocityLabel(item.likes, scan.demand),
           popularity: Math.min(98, scan.demand + 4 - index),
           link: item.link,
           signal: `Prix lu + style vendable ${sellable.toFixed(1)}/10`,
-          reason: `Prix annonce: ${listingPrice} EUR. Revente visee: ${scan.resale} EUR. Marge brute: ${margin} EUR avant frais. Titre juge vendable: marque/style/details assez clairs.`,
+          reason: `Prix annonce: ${listingPrice} EUR. Revente visee: ${scan.resale} EUR. Revente prudente apres marge de securite: ${safe.safeResale} EUR. Achat max conseille: ${safe.maxSafeBuy} EUR.`,
           risk: scan.risk,
           condition: "A verifier sur photos vendeur",
-          sellerSignal: `Prix exact sous ${scan.max} EUR, style assez propre pour revendre`,
+          sellerSignal: `Si le prix est un peu haut, regarde le dressing vendeur pour tenter un lot et viser -30% a -40%.`,
           spottedAt: `Live ${new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}`
         };
       });
