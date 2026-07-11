@@ -398,28 +398,34 @@ export function WeeklyOpportunities() {
     if (!isElite) return;
 
     let cancelled = false;
-    setLiveLoading(true);
-    fetch(liveApiUrl(selectedNiches, selectedSearches), { cache: "no-store" })
-      .then((response) => response.ok ? response.json() : null)
-      .then((data: { items?: LiveOpportunity[]; message?: string } | null) => {
-        if (cancelled) return;
-        setLiveItems(data?.items || []);
-        setLiveMessage(data?.message || "Scanner indisponible pour le moment.");
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setLiveItems([]);
-          setLiveMessage("Scanner live bloque pour le moment. Les tendances restent disponibles.");
-        }
-      })
-      .finally(() => {
-        if (!cancelled) setLiveLoading(false);
-      });
+    function scan() {
+      setLiveLoading(true);
+      fetch(liveApiUrl(selectedNiches, selectedSearches), { cache: "no-store" })
+        .then((response) => response.ok ? response.json() : null)
+        .then((data: { items?: LiveOpportunity[]; message?: string } | null) => {
+          if (cancelled) return;
+          setLiveItems(data?.items || []);
+          setLiveMessage(data?.message || "Bot en attente: aucune annonce fiable pour ces filtres.");
+        })
+        .catch(() => {
+          if (!cancelled) {
+            setLiveItems([]);
+            setLiveMessage("Bot temporairement bloque par Vinted. Il reessaie automatiquement.");
+          }
+        })
+        .finally(() => {
+          if (!cancelled) setLiveLoading(false);
+        });
+    }
+
+    scan();
+    const interval = window.setInterval(scan, 45000);
 
     return () => {
       cancelled = true;
+      window.clearInterval(interval);
     };
-  }, [isElite]);
+  }, [isElite, selectedNiches, selectedSearches]);
 
   const sorted = useMemo(() => {
     const selectedBudget = budgetFilters.find((item) => item.key === budget) || budgetFilters[0];
@@ -578,6 +584,12 @@ export function WeeklyOpportunities() {
       </div>
 
       <section className="mt-6 rounded-lg border border-white/10 bg-panel p-5 shadow-glow">
+        <div className="mb-5 grid gap-3 border-b border-white/10 pb-5 md:grid-cols-3">
+          <StepCard index="1" title="Regle tes filtres" text="Choisis budget, niches, marques ou mots cles." />
+          <StepCard index="2" title="Bot actif" text="Le radar relance tout seul sans rafraichir la page." />
+          <StepCard index="3" title="Tu ouvres les pepites" text="Prix, marge, etat et signal sont lisibles direct." />
+        </div>
+
         <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
           <div className="grid gap-3">
             <label className="grid gap-2 text-sm font-bold text-white">
@@ -635,6 +647,39 @@ export function WeeklyOpportunities() {
           </div>
         </div>
 
+        <div className="mt-5 flex flex-col gap-3 rounded-lg border border-white/10 bg-black/20 p-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <p className="text-xs font-black uppercase text-muted">Filtres sauvegardes</p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {savedFilters.map((filter) => (
+                <button
+                  key={filter.id}
+                  type="button"
+                  onClick={() => {
+                    setDraftFilter(filter);
+                    setNicheSearch(filter.keywords);
+                  }}
+                  className="inline-flex items-center gap-2 rounded-md border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-bold text-white hover:border-accent/40"
+                >
+                  <Filter size={13} className="text-accent" />
+                  {filter.name}
+                </button>
+              ))}
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setDraftFilter({ ...defaultFilter, id: `filter-${Date.now()}` });
+              setFiltersOpen(true);
+            }}
+            className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-accent/35 bg-accent/10 px-4 text-sm font-black text-accent hover:bg-accent/15"
+          >
+            <Filter size={15} />
+            Creer un filtre
+          </button>
+        </div>
+
         <div className="mt-5">
           <p className="text-xs font-black uppercase text-muted">{nicheSearch.trim() ? "Suggestions trouvees" : "Niches actives"}</p>
           <div className="mt-2 flex max-h-36 flex-wrap gap-2 overflow-y-auto pr-1">
@@ -687,14 +732,10 @@ export function WeeklyOpportunities() {
               Le live garde seulement les annonces ou le prix Vinted est lu, sous le budget, avec une marge assez forte. Si le prix est bloque, l'annonce ne s'affiche pas.
             </p>
           </div>
-          <button
-            type="button"
-            onClick={refreshLive}
-            className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-white/15 bg-white/5 px-4 text-sm font-bold text-white hover:bg-white/10"
-          >
-            <Search size={15} />
-            Rafraichir
-          </button>
+          <span className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-accent/25 bg-accent/10 px-4 text-sm font-black text-accent">
+            {liveLoading ? <Loader2 size={15} className="animate-spin" /> : <CheckCircle2 size={15} />}
+            Bot actif
+          </span>
         </div>
 
         {filteredLiveItems.length > 0 ? (
@@ -793,59 +834,6 @@ export function WeeklyOpportunities() {
           </div>
         )}
       </section>
-
-      <div className="mt-6 grid gap-4">
-        {sorted.map((item) => (
-          <article key={item.id} className="rounded-lg border border-white/10 bg-panel p-5 shadow-glow">
-            <div className="grid gap-5 lg:grid-cols-[1.15fr_0.85fr]">
-              <div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="rounded-full border border-accent/25 bg-accent/10 px-3 py-1 text-xs font-black uppercase text-accent">{item.category}</span>
-                  <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs font-bold text-slate-200">{item.season}</span>
-                </div>
-                <h2 className="mt-3 text-2xl font-bold leading-tight">{item.title}</h2>
-                <p className="mt-3 text-sm leading-6 text-slate-300">{item.whyNow}</p>
-                <p className="mt-2 text-sm leading-6 text-muted">{item.demand}</p>
-              </div>
-
-              <div className="grid gap-2 text-sm">
-                <Row label="Payer max" value={`${item.buyMax} EUR`} strong />
-                <Row label="Zone achat" value={item.budget} />
-                <Row label="Revente visee" value={item.resale} strong />
-              </div>
-            </div>
-
-            <div className="mt-5 grid gap-4 lg:grid-cols-3">
-              <div className="rounded-md border border-white/10 bg-white/[0.03] p-4">
-                <p className="flex items-center gap-2 text-sm font-bold text-white"><Search size={16} className="text-accent" />Recherches</p>
-                <div className="mt-3 grid gap-2">
-                  {item.searchIdeas.slice(0, 3).map((idea) => (
-                    <a key={idea} href={vintedSearchUrl(idea, item.buyMax)} target="_blank" rel="noreferrer" className="rounded-md border border-white/10 bg-black/10 px-3 py-2 text-xs font-semibold text-accent hover:border-accent/50">
-                      {idea}
-                    </a>
-                  ))}
-                </div>
-              </div>
-
-              <div className="rounded-md border border-white/10 bg-white/[0.03] p-4">
-                <p className="flex items-center gap-2 text-sm font-bold text-white"><ShieldCheck size={16} className="text-accent" />Check rapide</p>
-                <ul className="mt-3 grid gap-1 text-sm leading-6 text-muted">
-                  {item.checks.slice(0, 4).map((check) => <li key={check}>- {check}</li>)}
-                </ul>
-              </div>
-
-              <div className="rounded-md border border-accent/20 bg-accent/[0.06] p-4">
-                <p className="flex items-center gap-2 text-sm font-bold text-accent"><Sparkles size={16} />Annonce gagnante</p>
-                <p className="mt-3 text-sm leading-6 text-slate-200">{item.saleAngle}</p>
-              </div>
-            </div>
-
-            <p className="mt-4 rounded-md border border-amber-300/15 bg-amber-400/10 p-3 text-sm leading-6 text-amber-100">
-              A eviter : {item.avoid}
-            </p>
-          </article>
-        ))}
-      </div>
 
       {filtersOpen ? (
         <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-4">
@@ -967,6 +955,20 @@ function RadarStat({ label, value }: { label: string; value: string }) {
     <div className="rounded-md border border-white/10 bg-black/25 p-3 text-center">
       <p className="text-[10px] font-black uppercase text-muted">{label}</p>
       <p className="mt-1 text-lg font-black text-white">{value}</p>
+    </div>
+  );
+}
+
+function StepCard({ index, title, text }: { index: string; title: string; text: string }) {
+  return (
+    <div className="rounded-md border border-white/10 bg-white/[0.03] p-3">
+      <div className="flex items-start gap-3">
+        <span className="grid h-7 w-7 shrink-0 place-items-center rounded-md bg-accent text-xs font-black text-ink">{index}</span>
+        <div>
+          <p className="text-sm font-black text-white">{title}</p>
+          <p className="mt-1 text-xs leading-5 text-muted">{text}</p>
+        </div>
+      </div>
     </div>
   );
 }
