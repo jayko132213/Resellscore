@@ -140,7 +140,22 @@ const nichePresets: NichePreset[] = [
     { id: "football-bucket", label: "Bucket foot" },
     { id: "balletcore-shoes", label: "Balletcore shoes" },
     { id: "animal-print-sneakers", label: "Sneakers animal print" },
-    { id: "metallic-sneakers", label: "Sneakers metalliques" }
+    { id: "metallic-sneakers", label: "Sneakers metalliques" },
+    { id: "coach-y2k-bag", label: "Coach Y2K bags" },
+    { id: "dior-saddle-inspired", label: "Saddle bags" },
+    { id: "raffia-bag", label: "Sacs raphia" },
+    { id: "beaded-bag", label: "Sacs perles" },
+    { id: "jellycat", label: "Jellycat" },
+    { id: "vintage-ipod", label: "iPod vintage" },
+    { id: "walkman", label: "Walkman" },
+    { id: "pyrex-rare", label: "Pyrex rare" },
+    { id: "vaseline-glass", label: "Vaseline glass" },
+    { id: "sterling-silver", label: "Argent massif" },
+    { id: "vintage-ad-sign", label: "Plaques pub" },
+    { id: "brass-decor", label: "Deco laiton" },
+    { id: "lucite-accessories", label: "Lucite" },
+    { id: "vintage-board-games", label: "Jeux vintage" },
+    { id: "signed-cookbooks", label: "Livres signes" }
   ] },
   { id: "nike", label: "Nike", description: "Running, sport, ACG, pulls, shorts propres.", searches: [{ id: "nike-running", label: "Nike running" }, { id: "nike-sport", label: "Nike sport" }, { id: "nike-acg", label: "Nike ACG" }, { id: "nike-pull", label: "Nike pull" }, { id: "Nike short vert", label: "Nike shorts" }, { id: "nike-track", label: "Nike track jacket" }] },
   { id: "ralph", label: "Ralph Lauren", description: "Pull torsade, chemises Oxford, casquettes, old money.", searches: [{ id: "ralph-knit", label: "Pull torsade" }, { id: "ralph-oxford", label: "Oxford" }, { id: "ralph-cap", label: "Casquettes" }, { id: "ralph-rugby", label: "Rugby shirt" }, { id: "ralph-linen", label: "Lin ete" }] },
@@ -151,7 +166,9 @@ const nichePresets: NichePreset[] = [
   { id: "denim", label: "Denim", description: "Levi's 501, trucker, jorts, mesures propres.", searches: [{ id: "denim-levis", label: "Levi's 501" }, { id: "denim-trucker", label: "Trucker jacket" }, { id: "denim-jorts", label: "Jorts" }] },
   { id: "designer", label: "Designer", description: "Stone Island, CP Company, pieces premium verifiables.", searches: [{ id: "designer-stone", label: "Stone Island" }, { id: "designer-cp", label: "CP Company" }, { id: "designer-fred-perry", label: "Fred Perry Oxford" }] },
   { id: "sneakers", label: "Sneakers 2026", description: "Speedcat, slim, metallic, running chunky, ballet sneakers.", searches: [{ id: "puma-speedcat", label: "Puma Speedcat" }, { id: "puma-h-street", label: "Puma H-Street" }, { id: "fila-vintage", label: "Fila vintage" }, { id: "slim-sneakers", label: "Slim sneakers" }] },
-  { id: "accessoires", label: "Accessoires rapides", description: "Sacs banane, casquettes, lunettes, petits paniers rapides.", searches: [{ id: "bum-bag-vintage", label: "Sac banane vintage" }, { id: "cap-vintage-logo", label: "Casquette logo" }, { id: "sunglasses-y2k", label: "Lunettes Y2K" }] },
+  { id: "sacs", label: "Sacs", description: "Coach Y2K, raphia, perles, denim, mini bags.", searches: [{ id: "coach-y2k-bag", label: "Coach Y2K" }, { id: "raffia-bag", label: "Raphia ete" }, { id: "beaded-bag", label: "Perles / sequins" }, { id: "denim-bag", label: "Sac denim" }, { id: "mini-pouch", label: "Mini pouch" }] },
+  { id: "accessoires", label: "Accessoires rapides", description: "Sacs banane, casquettes, lunettes, petits paniers rapides.", searches: [{ id: "bum-bag-vintage", label: "Sac banane vintage" }, { id: "cap-vintage-logo", label: "Casquette logo" }, { id: "sunglasses-y2k", label: "Lunettes Y2K" }, { id: "paperboy-hat", label: "Paperboy hat" }, { id: "fur-hat", label: "Bonnet/fur hat" }] },
+  { id: "objets", label: "Objets pepites", description: "Jouets, tech vintage, deco, vaisselle, jeux et livres signes.", searches: [{ id: "jellycat", label: "Jellycat" }, { id: "vintage-ipod", label: "iPod vintage" }, { id: "walkman", label: "Walkman" }, { id: "pyrex-rare", label: "Pyrex rare" }, { id: "sterling-silver", label: "Argent massif" }, { id: "vintage-board-games", label: "Jeux vintage" }] },
   { id: "tech", label: "Tech", description: "Seulement si preuves, facture et risque compris.", searches: [{ id: "tech-iphone", label: "iPhone" }] },
   { id: "ete", label: "Saison ete", description: "Jupes, robes, chemisiers, pieces propres et lumineuses.", searches: [{ id: "summer-skirt-premium", label: "Jupes" }, { id: "summer-dress-premium", label: "Robes" }, { id: "summer-blouse", label: "Chemisiers" }] },
   { id: "hiver", label: "Saison hiver", description: "Mailles, laine, doudounes, achats avant la demande.", searches: [{ id: "winter-knit", label: "Mailles" }, { id: "winter-puffer", label: "Doudounes" }] }
@@ -776,7 +793,7 @@ export function WeeklyOpportunities() {
 
                     <div className="mt-3 grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
                       <Mini label="Marge" value={`+${item.margin} EUR`} highlight />
-                      <Mini label="Likes" value={item.likes === null ? "non lus" : String(item.likes)} />
+                      <Mini label="Likes" value={item.likes === null ? "masques" : String(item.likes)} />
                       <Mini label="Demande" value={`${item.demand}%`} />
                       <Mini label="Reserve" value={`${item.safetyReserve} EUR`} />
                     </div>

@@ -103,6 +103,25 @@ const internetNicheScans: Scan[] = [
   { id: "balletcore-shoes", niche: "niche", subcategory: "Balletcore shoes", q: "ballerine satin sneaker", max: 35, category: "Balletcore", retail: 95, resale: 65, demand: 76, minMargin: 20, minRate: 0.55, risk: "Verifier semelle, odeur et taches" },
   { id: "animal-print-sneakers", niche: "niche", subcategory: "Sneakers animal print", q: "sneakers leopard", max: 45, category: "Sneakers", retail: 120, resale: 82, demand: 78, minMargin: 26, minRate: 0.6, risk: "Verifier usure semelle et tendances trop rapides" },
   { id: "metallic-sneakers", niche: "niche", subcategory: "Sneakers metalliques", q: "sneakers metallic silver", max: 45, category: "Sneakers", retail: 120, resale: 82, demand: 78, minMargin: 26, minRate: 0.6, risk: "Verifier plis, couleur et talon interieur" },
+  { id: "coach-y2k-bag", niche: "sacs", subcategory: "Coach Y2K bags", q: "Coach sac vintage y2k", max: 70, category: "Sacs", retail: 220, resale: 145, demand: 86, minMargin: 45, minRate: 0.65, risk: "Verifier cuir, coins, doublure et numero de serie" },
+  { id: "dior-saddle-inspired", niche: "niche", subcategory: "Saddle bags", q: "sac saddle vintage cuir", max: 65, category: "Sacs", retail: 180, resale: 125, demand: 82, minMargin: 38, minRate: 0.6, risk: "Verifier marque, cuir, bandouliere et contrefacons" },
+  { id: "raffia-bag", niche: "sacs", subcategory: "Sacs raphia", q: "sac raphia vintage", max: 28, category: "Sacs ete", retail: 85, resale: 58, demand: 80, minMargin: 20, minRate: 0.75, risk: "Verifier anses, trous et odeur" },
+  { id: "beaded-bag", niche: "sacs", subcategory: "Sacs perles", q: "sac perles vintage", max: 30, category: "Sacs soiree", retail: 90, resale: 65, demand: 78, minMargin: 24, minRate: 0.8, risk: "Verifier perles manquantes et fermeture" },
+  { id: "denim-bag", niche: "sacs", subcategory: "Sac denim", q: "sac denim vintage", max: 25, category: "Sacs", retail: 70, resale: 48, demand: 74, minMargin: 18, minRate: 0.75, risk: "Verifier taches, zip et anses" },
+  { id: "mini-pouch", niche: "sacs", subcategory: "Mini pouch", q: "mini pouch vintage", max: 22, category: "Sacs", retail: 65, resale: 45, demand: 74, minMargin: 16, minRate: 0.7, risk: "Verifier fermeture et matiere" },
+  { id: "jellycat", niche: "objets", subcategory: "Jellycat", q: "Jellycat peluche", max: 25, category: "Objets collector", retail: 45, resale: 55, demand: 86, minMargin: 18, minRate: 0.75, risk: "Verifier etiquette, authenticite et propretete" },
+  { id: "vintage-ipod", niche: "objets", subcategory: "iPod vintage", q: "iPod classic fonctionne", max: 70, category: "Tech vintage", retail: 180, resale: 135, demand: 84, minMargin: 45, minRate: 0.65, risk: "Verifier batterie, stockage, cable et compte retire" },
+  { id: "walkman", niche: "objets", subcategory: "Walkman", q: "Sony Walkman vintage fonctionne", max: 45, category: "Tech vintage", retail: 140, resale: 95, demand: 80, minMargin: 32, minRate: 0.7, risk: "Verifier lecture cassette/CD, pile et corrosion" },
+  { id: "pyrex-rare", niche: "objets", subcategory: "Pyrex rare", q: "Pyrex vintage rare", max: 35, category: "Maison collector", retail: 120, resale: 85, demand: 78, minMargin: 30, minRate: 0.85, risk: "Verifier motif, eclats, fissures et authenticite" },
+  { id: "vaseline-glass", niche: "objets", subcategory: "Vaseline glass", q: "vaseline glass uranium", max: 35, category: "Maison collector", retail: 110, resale: 80, demand: 76, minMargin: 28, minRate: 0.8, risk: "Verifier photos UV, eclats et expedition fragile" },
+  { id: "sterling-silver", niche: "objets", subcategory: "Argent massif", q: "argent massif poincon", max: 60, category: "Bijoux / maison", retail: 180, resale: 130, demand: 82, minMargin: 42, minRate: 0.7, risk: "Verifier poincons, poids et argent plaque vs massif" },
+  { id: "vintage-ad-sign", niche: "objets", subcategory: "Plaques pub", q: "plaque publicitaire vintage metal", max: 55, category: "Deco collector", retail: 180, resale: 125, demand: 78, minMargin: 40, minRate: 0.75, risk: "Verifier reproduction moderne et etat" },
+  { id: "brass-decor", niche: "objets", subcategory: "Deco laiton", q: "laiton vintage deco", max: 25, category: "Deco", retail: 80, resale: 55, demand: 74, minMargin: 20, minRate: 0.8, risk: "Verifier poids, oxydation et vraie matiere" },
+  { id: "lucite-accessories", niche: "objets", subcategory: "Lucite", q: "lucite vintage", max: 30, category: "Deco / accessoire", retail: 95, resale: 68, demand: 74, minMargin: 24, minRate: 0.8, risk: "Verifier rayures et jaunissement" },
+  { id: "vintage-board-games", niche: "objets", subcategory: "Jeux vintage", q: "jeu de societe vintage complet", max: 25, category: "Jeux collector", retail: 75, resale: 55, demand: 72, minMargin: 18, minRate: 0.75, risk: "Verifier pieces completes, boite et edition" },
+  { id: "signed-cookbooks", niche: "objets", subcategory: "Livres signes", q: "livre cuisine signe", max: 22, category: "Livres collector", retail: 70, resale: 48, demand: 70, minMargin: 16, minRate: 0.7, risk: "Verifier signature, edition et etat pages" },
+  { id: "paperboy-hat", niche: "accessoires", subcategory: "Paperboy hat", q: "casquette gavroche vintage", max: 18, category: "Accessoires", retail: 55, resale: 38, demand: 74, minMargin: 14, minRate: 0.75, risk: "Verifier taille, forme et taches" },
+  { id: "fur-hat", niche: "accessoires", subcategory: "Bonnet/fur hat", q: "bonnet fourrure vintage", max: 22, category: "Accessoires", retail: 70, resale: 48, demand: 74, minMargin: 16, minRate: 0.7, risk: "Verifier matiere, odeur et etat interieur" },
   { id: "nike-pull", niche: "nike", subcategory: "Nike pull", q: "pull Nike vintage", max: 30, category: "Nike", retail: 70, resale: 58, demand: 84, minMargin: 20, minRate: 0.7, risk: "Verifier col, logo et bouloches" },
   { id: "nike-track", niche: "nike", subcategory: "Nike track jacket", q: "Nike track jacket vintage", max: 45, category: "Nike", retail: 95, resale: 78, demand: 86, minMargin: 28, minRate: 0.65, risk: "Verifier zip, manches et taches" },
   { id: "ralph-rugby", niche: "ralph", subcategory: "Rugby shirt", q: "Ralph Lauren rugby", max: 35, category: "Ralph Lauren", retail: 130, resale: 78, demand: 80, minMargin: 28, minRate: 0.75, risk: "Verifier col blanc et traces aux manches" },
@@ -314,8 +333,7 @@ function parseFavoriteCount(html: string) {
     /"favourite_count"\s*:\s*(\d+)/i,
     /"favorite_count"\s*:\s*(\d+)/i,
     /"favorites_count"\s*:\s*(\d+)/i,
-    /"likes_count"\s*:\s*(\d+)/i,
-    /(\d+)\s*(?:favoris|likes|j'aime)/i
+    /"likes_count"\s*:\s*(\d+)/i
   ];
 
   for (const pattern of patterns) {
@@ -345,7 +363,7 @@ function parseConditionLabel(html: string) {
 
 function quickDescription(scan: Scan, listingPrice: number, resale: number, likes: number | null, condition: string) {
   const safe = safeBuyPrice(resale);
-  const likeText = likes === null ? "likes non lisibles" : `${likes} likes lus`;
+  const likeText = likes === null ? "likes masques par Vinted" : `${likes} likes lus`;
   return `${scan.subcategory || scan.q}: annonce a ${listingPrice} EUR, revente prudente ${safe.safeResale} EUR, achat max ${safe.maxSafeBuy} EUR, ${likeText}, etat ${condition.toLowerCase()}.`;
 }
 
