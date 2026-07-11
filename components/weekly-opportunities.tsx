@@ -368,6 +368,16 @@ export function WeeklyOpportunities() {
     }
   }
 
+  function testNotification() {
+    playAlertSound();
+    if ("Notification" in window && Notification.permission === "granted") {
+      new Notification("Test ResellScore", {
+        body: "Le son et la notification du radar sont actifs.",
+        icon: "/resellscore-icon.svg"
+      });
+    }
+  }
+
   function toggleDraftValue(field: keyof Pick<SavedFilter, "categories" | "brands" | "sizes" | "colors" | "conditions" | "zone" | "materials">, value: string) {
     setDraftFilter((current) => {
       const list = current[field];
@@ -510,6 +520,16 @@ export function WeeklyOpportunities() {
               <Bell size={16} />
               {notificationsOn ? "Alertes activees" : "Activer alertes"}
             </button>
+            {notificationsOn ? (
+              <button
+                type="button"
+                onClick={testNotification}
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-md border border-white/15 bg-white/5 px-4 text-sm font-black text-white transition hover:bg-white/10"
+              >
+                <Bell size={16} />
+                Tester
+              </button>
+            ) : null}
           </div>
         </div>
 
@@ -595,7 +615,7 @@ export function WeeklyOpportunities() {
               Annonces directes premium
             </p>
             <p className="mt-2 text-sm leading-6 text-muted">
-              Le live garde seulement les annonces ou le prix Vinted est lu, sous le budget, avec une marge assez forte. Si le prix est bloque, l'annonce ne s'affiche pas.
+              Le bot scanne tes filtres en boucle. Quand Vinted bloque une fiche, il garde maintenant les candidats catalogue avec prix lisible et te demande de verifier avant achat.
             </p>
           </div>
           <span className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-accent/25 bg-accent/10 px-4 text-sm font-black text-accent">
@@ -605,7 +625,7 @@ export function WeeklyOpportunities() {
         </div>
         {notificationsOn ? (
           <div className="mt-4 rounded-md border border-accent/20 bg-accent/[0.06] p-3 text-xs font-semibold leading-5 text-accent">
-            Alertes activees: si une nouvelle annonce apparait pendant que cette page tourne, ResellScore joue un son et envoie une notification.
+            Alertes activees: laisse cette page ouverte en fond. Si une nouvelle annonce passe les filtres, ResellScore joue son signal et affiche une notification.
           </div>
         ) : (
           <div className="mt-4 rounded-md border border-white/10 bg-white/[0.03] p-3 text-xs font-semibold leading-5 text-muted">
@@ -812,19 +832,31 @@ function playAlertSound() {
     const AudioContextClass = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
     if (!AudioContextClass) return;
     const context = new AudioContextClass();
-    const gain = context.createGain();
-    gain.gain.setValueAtTime(0.0001, context.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.2, context.currentTime + 0.02);
-    gain.gain.exponentialRampToValueAtTime(0.0001, context.currentTime + 0.35);
-    gain.connect(context.destination);
+    const master = context.createGain();
+    master.gain.setValueAtTime(0.0001, context.currentTime);
+    master.gain.exponentialRampToValueAtTime(0.32, context.currentTime + 0.03);
+    master.gain.exponentialRampToValueAtTime(0.0001, context.currentTime + 1.15);
+    master.connect(context.destination);
 
-    [880, 1175].forEach((frequency, index) => {
+    [
+      { frequency: 659, start: 0, length: 0.12 },
+      { frequency: 988, start: 0.15, length: 0.12 },
+      { frequency: 1319, start: 0.3, length: 0.2 },
+      { frequency: 988, start: 0.68, length: 0.12 },
+      { frequency: 1319, start: 0.84, length: 0.24 }
+    ].forEach((note) => {
+      const gain = context.createGain();
+      gain.gain.setValueAtTime(0.0001, context.currentTime + note.start);
+      gain.gain.exponentialRampToValueAtTime(0.75, context.currentTime + note.start + 0.015);
+      gain.gain.exponentialRampToValueAtTime(0.0001, context.currentTime + note.start + note.length);
+      gain.connect(master);
+
       const oscillator = context.createOscillator();
-      oscillator.type = "sine";
-      oscillator.frequency.setValueAtTime(frequency, context.currentTime + index * 0.12);
+      oscillator.type = "triangle";
+      oscillator.frequency.setValueAtTime(note.frequency, context.currentTime + note.start);
       oscillator.connect(gain);
-      oscillator.start(context.currentTime + index * 0.12);
-      oscillator.stop(context.currentTime + index * 0.12 + 0.18);
+      oscillator.start(context.currentTime + note.start);
+      oscillator.stop(context.currentTime + note.start + note.length + 0.03);
     });
   } catch {}
 }
