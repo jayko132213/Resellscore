@@ -615,7 +615,7 @@ export function WeeklyOpportunities() {
               Annonces directes premium
             </p>
             <p className="mt-2 text-sm leading-6 text-muted">
-              Le bot scanne tes filtres en boucle. Quand Vinted bloque une fiche, il garde maintenant les candidats catalogue avec prix lisible et te demande de verifier avant achat.
+              Mode strict: le bot n'affiche une annonce que si le prix, l'image et les likes sont lus sur la vraie fiche. Moins de cartes, mais moins de hasard.
             </p>
           </div>
           <span className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-accent/25 bg-accent/10 px-4 text-sm font-black text-accent">
@@ -725,7 +725,7 @@ export function WeeklyOpportunities() {
           </div>
         ) : (
           <div className="mt-4 rounded-md border border-white/10 bg-white/[0.03] p-4 text-sm leading-6 text-muted">
-            {liveLoading ? "Recherche des annonces Vinted avec prix reel en cours..." : liveMessage || "Aucune annonce directe fiable detectee pour le moment."}
+            {liveLoading ? "Scan strict en cours: prix, image et likes reels..." : liveMessage || "Aucune annonce assez fiable pour le moment."}
           </div>
         )}
       </section>

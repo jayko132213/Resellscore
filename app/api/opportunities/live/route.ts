@@ -324,7 +324,7 @@ function extractLinks(html: string) {
     }
   }
 
-  return [...links.values()].slice(0, 10);
+  return [...links.values()].slice(0, 5);
 }
 
 function parseNearbyPrice(fragment: string) {
@@ -440,7 +440,7 @@ function parseFavoriteCount(html: string) {
     const match = pattern.exec(html);
     if (!match?.[1]) continue;
     const value = Number(match[1]);
-    if (Number.isFinite(value) && value >= 0 && value < 100000) return value;
+    if (Number.isFinite(value) && value > 0 && value < 100000) return value;
   }
 
   return null;
@@ -530,7 +530,7 @@ function isDetectedItem(item: DetectedItem | null): item is DetectedItem {
 
 async function fetchListingDetail(item: CatalogItem): Promise<DetectedItem | null> {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 7000);
+  const timeout = setTimeout(() => controller.abort(), 4500);
 
   try {
     const response = await fetch(item.link, {
@@ -543,7 +543,7 @@ async function fetchListingDetail(item: CatalogItem): Promise<DetectedItem | nul
       cache: "no-store"
     });
     clearTimeout(timeout);
-    if (!response.ok) return normalizeCatalogItem(item);
+    if (!response.ok) return null;
     const html = await response.text();
     const listingPrice = parseDetailPrice(html) || item.listingPrice || null;
     const title = parseDetailTitle(html, item.title);
@@ -551,11 +551,11 @@ async function fetchListingDetail(item: CatalogItem): Promise<DetectedItem | nul
     const likes = parseFavoriteCount(html) ?? item.likes ?? null;
     const postedLabel = parsePostedLabel(html) || item.postedLabel || "";
     const condition = parseConditionLabel(html) || item.condition || "A verifier";
-    if (!listingPrice || !looksReliable(title)) return normalizeCatalogItem(item);
+    if (!listingPrice || !looksReliable(title)) return null;
     return { ...item, title, listingPrice, likes, imageUrl, postedLabel, condition, source: "detail" as const };
   } catch {
     clearTimeout(timeout);
-    return normalizeCatalogItem(item);
+    return null;
   }
 }
 
@@ -568,7 +568,7 @@ async function fetchSearch(scan: Scan) {
   if (scan.min) params.set("price_from", String(scan.min));
   const url = `https://www.vinted.fr/catalog?${params.toString()}`;
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 8000);
+  const timeout = setTimeout(() => controller.abort(), 5500);
 
   try {
     const response = await fetch(url, {
@@ -595,18 +595,17 @@ async function fetchSearch(scan: Scan) {
         const marginRate = margin / Math.max(price, 1);
         const sellable = sellabilityScore(item.title, scan);
         const fresh = freshnessScore(item.postedLabel);
-        const hasHotLikes = item.likes !== null && item.likes >= 4 && fresh >= 0.35;
-        const hasStrongHiddenSignal = (item.likes === null || item.likes === undefined) && scan.demand >= 82 && fresh >= 0.45 && marginRate >= Math.max(scan.minRate * 0.7, 0.45);
-        const demandSignal = hasHotLikes || hasStrongHiddenSignal || scan.demand >= 86;
-        const premiumPrice = price <= safe.maxSafeBuy || marginRate >= Math.max(scan.minRate * 0.75, 0.45);
-        return price > 0 && price <= scan.max && premiumPrice && margin >= Math.max(8, Math.round(scan.minMargin * 0.55)) && sellable >= 5.8 && demandSignal;
+        const hasRealSignals = item.source === "detail" && Boolean(item.imageUrl) && item.likes !== null;
+        const hasHotLikes = item.likes !== null && item.likes >= 3 && fresh >= 0.35;
+        const premiumPrice = price <= safe.maxSafeBuy || marginRate >= Math.max(scan.minRate, 0.55);
+        return hasRealSignals && hasHotLikes && price > 0 && price <= scan.max && premiumPrice && margin >= Math.max(12, Math.round(scan.minMargin * 0.8)) && sellable >= 6.4;
       })
       .map((item, index): LiveOpportunity => {
         const listingPrice = item.listingPrice;
-        const likes = item.likes ?? null;
+        const likes = item.likes ?? 0;
         const resaleTarget = Math.max(
           listingPrice + 1,
-          Math.round(scan.resale * (likes === null ? 0.9 : 1) * (item.source === "catalog" ? 0.92 : 1))
+          Math.round(scan.resale * (likes >= 10 ? 1 : 0.9))
         );
         const safe = safeBuyPrice(resaleTarget);
         const margin = resaleTarget - listingPrice;
@@ -614,12 +613,8 @@ async function fetchSearch(scan: Scan) {
         const sellable = sellabilityScore(item.title, scan);
         const likeBoost = likes === null ? 0 : Math.min(0.8, likes / 30);
         const freshBoost = Math.min(0.5, freshnessScore(item.postedLabel) * 0.5);
-        const catalogPenalty = item.source === "catalog" ? 0.25 : 0;
-        const missingSignalPenalty = (likes === null ? 0.7 : 0) + (item.imageUrl ? 0 : 0.35);
-        const scoreCeiling = likes === null || !item.imageUrl ? 8.3 : 9.8;
-        const score = Math.max(6.4, Math.min(scoreCeiling, 6.1 + marginRate * 1.05 + scan.demand / 100 + sellable * 0.18 + likeBoost + freshBoost + (listingPrice <= safe.maxSafeBuy ? 0.45 : 0) - catalogPenalty - missingSignalPenalty - index * 0.08));
-        const sourceLabel = item.source === "catalog" ? "Prix catalogue lu, fiche a verifier" : "Prix fiche lu";
-        const demandScore = likes === null ? Math.min(70, scan.demand) : scan.demand;
+        const score = Math.max(6.8, Math.min(9.5, 5.8 + marginRate * 0.95 + sellable * 0.2 + likeBoost + freshBoost + (listingPrice <= safe.maxSafeBuy ? 0.6 : 0) - index * 0.1));
+        const demandScore = Math.min(98, Math.round(52 + likes * 2.4 + freshnessScore(item.postedLabel) * 18));
 
         return {
           id: `${scan.q}-${index}-${item.link}`.replace(/\W+/g, "-").slice(0, 90),
@@ -642,8 +637,8 @@ async function fetchSearch(scan: Scan) {
           popularity: Math.min(98, demandScore + 4 - index),
           link: item.link,
           imageUrl: item.imageUrl || "",
-          signal: `${sourceLabel} + style vendable ${sellable.toFixed(1)}/10${likes === null ? " + likes non lus" : ""}`,
-          reason: `Prix annonce: ${listingPrice} EUR. Revente visee prudente: ${resaleTarget} EUR. Revente apres marge de securite: ${safe.safeResale} EUR. Achat max conseille: ${safe.maxSafeBuy} EUR.${item.source === "catalog" ? " Ouvre l'annonce pour confirmer avant achat." : ""}`,
+          signal: `Prix, image et likes lus sur la fiche + style vendable ${sellable.toFixed(1)}/10`,
+          reason: `Prix annonce: ${listingPrice} EUR. Likes lus: ${likes}. Revente visee prudente: ${resaleTarget} EUR. Achat max conseille: ${safe.maxSafeBuy} EUR.`,
           risk: scan.risk,
           condition: item.condition || "A verifier",
           sellerSignal: `Si le prix est un peu haut, regarde le dressing vendeur pour tenter un lot et viser -30% a -40%.`,
@@ -671,8 +666,8 @@ export async function GET(request: Request) {
   const selectedScans = allScans
     .filter((scan) => requestedNiches.length === 0 || requestedNiches.includes(scan.niche || ""))
     .filter((scan) => requestedSearches.length === 0 || requestedSearches.includes(scan.id || scan.q))
-    .slice(0, 12);
-  const activeScans = selectedScans.length > 0 ? selectedScans : allScans.slice(0, 12);
+    .slice(0, 6);
+  const activeScans = selectedScans.length > 0 ? selectedScans : allScans.slice(0, 6);
   const results = (await Promise.all(activeScans.map(fetchSearch))).flat();
   const unique = Array.from(new Map(results.map((item) => [item.link, item])).values())
     .sort((a, b) => (b.score - a.score) || (b.margin - a.margin))
@@ -683,8 +678,8 @@ export async function GET(request: Request) {
     checkedAt: new Date().toISOString(),
     live: unique.length > 0,
     message: unique.length > 0
-      ? `${unique.length} annonces live detectees. Certaines viennent du catalogue Vinted: ouvre toujours l'annonce avant achat.`
-      : `Bot actif: ${activeScans.length} filtres scannes, mais aucune annonce n'a encore passe le prix, la marge et la demande minimum.`,
+      ? `${unique.length} annonces strictes: prix, image et likes lus sur la fiche.`
+      : `Bot actif: ${activeScans.length} filtres scannes. Rien n'est affiche tant que prix + image + vrais likes ne sont pas lus.`,
     activeScans: activeScans.map((scan) => ({ id: scan.id || scan.q, niche: scan.niche || "general", label: scan.subcategory || scan.q, q: scan.q }))
   });
 }
