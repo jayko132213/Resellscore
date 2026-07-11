@@ -532,6 +532,16 @@ function safeBuyPrice(resale: number) {
   };
 }
 
+function conservativeResaleTarget(scan: Scan, likes: number, fresh: number) {
+  const confidence = likes >= 15 ? 0.78 : likes >= 8 ? 0.72 : likes >= 4 ? 0.66 : 0.6;
+  const freshnessPenalty = fresh >= 0.9 ? 1 : fresh >= 0.72 ? 0.94 : 0.86;
+  return Math.max(1, Math.round(scan.resale * confidence * freshnessPenalty));
+}
+
+function maxPeptideBuy(resaleTarget: number) {
+  return Math.max(1, Math.floor(resaleTarget * 0.42));
+}
+
 function normalizeCatalogItem(item: CatalogItem): DetectedItem | null {
   if (!item.listingPrice) return null;
   return {
@@ -756,32 +766,40 @@ function buildOpportunities(scan: Scan, items: DetectedItem[]) {
       .filter(isDetectedItem)
       .filter((item) => {
         const price = item.listingPrice;
-        const safe = safeBuyPrice(scan.resale);
-        const margin = scan.resale - price;
+        const likes = item.likes ?? 0;
+        const fresh = freshnessScore(item.postedLabel);
+        const resaleTarget = conservativeResaleTarget(scan, likes, fresh);
+        const maxBuy = Math.min(scan.max, maxPeptideBuy(resaleTarget));
+        const margin = resaleTarget - price;
         const marginRate = margin / Math.max(price, 1);
         const sellable = sellabilityScore(item.title, scan);
-        const fresh = freshnessScore(item.postedLabel);
         const hasRealSignals = (item.source === "api" || item.source === "detail") && Boolean(item.imageUrl);
-        const hasHotLikes = item.likes !== null && item.likes >= 4 && fresh >= 0.7;
-        const isUltraFreshMargin = fresh >= 0.9 && marginRate >= Math.max(scan.minRate, 0.6);
-        const premiumPrice = price <= safe.maxSafeBuy || marginRate >= Math.max(scan.minRate, 0.55);
-        return hasRealSignals && (hasHotLikes || isUltraFreshMargin) && price > 0 && price <= scan.max && premiumPrice && margin >= Math.max(10, Math.round(scan.minMargin * 0.7)) && sellable >= 6.1;
+        const hasFreshSignal = fresh >= 0.72;
+        const hasDemandSignal = likes >= 4 || fresh >= 0.9;
+        const minimumMargin = price >= 50 ? Math.max(28, scan.minMargin) : Math.max(18, scan.minMargin);
+        return hasRealSignals
+          && hasFreshSignal
+          && hasDemandSignal
+          && price > 0
+          && price <= maxBuy
+          && margin >= minimumMargin
+          && marginRate >= Math.max(0.9, scan.minRate)
+          && sellable >= 6.5;
       })
       .map((item, index): LiveOpportunity => {
         const listingPrice = item.listingPrice;
         const likes = item.likes ?? 0;
-        const resaleTarget = Math.max(
-          listingPrice + 1,
-          Math.round(scan.resale * (likes >= 10 ? 1 : 0.9))
-        );
-        const safe = safeBuyPrice(resaleTarget);
+        const fresh = freshnessScore(item.postedLabel);
+        const resaleTarget = conservativeResaleTarget(scan, likes, fresh);
+        const safetyReserve = Math.max(1, scan.resale - resaleTarget);
+        const maxSafeBuy = maxPeptideBuy(resaleTarget);
         const margin = resaleTarget - listingPrice;
         const marginRate = margin / Math.max(listingPrice, 1);
         const sellable = sellabilityScore(item.title, scan);
-        const likeBoost = likes === null ? 0 : Math.min(0.8, likes / 30);
-        const freshBoost = Math.min(0.5, freshnessScore(item.postedLabel) * 0.5);
-        const score = Math.max(6.9, Math.min(9.6, 5.9 + marginRate * 0.95 + sellable * 0.2 + likeBoost + freshBoost + (listingPrice <= safe.maxSafeBuy ? 0.6 : 0) - index * 0.1));
-        const demandScore = Math.min(98, Math.round(52 + likes * 2.4 + freshnessScore(item.postedLabel) * 18));
+        const likeBoost = Math.min(0.7, likes / 35);
+        const freshBoost = Math.min(0.5, fresh * 0.5);
+        const score = Math.max(7.2, Math.min(9.7, 5.4 + marginRate * 0.9 + sellable * 0.18 + likeBoost + freshBoost + (listingPrice <= maxSafeBuy ? 0.7 : 0) - index * 0.08));
+        const demandScore = Math.min(98, Math.round(48 + likes * 2.2 + fresh * 18));
 
         return {
           id: `${scan.q}-${index}-${item.link}`.replace(/\W+/g, "-").slice(0, 90),
@@ -792,10 +810,10 @@ function buildOpportunities(scan: Scan, items: DetectedItem[]) {
           listingPrice,
           retail: scan.retail,
           resale: resaleTarget,
-          safeResale: safe.safeResale,
-          maxSafeBuy: safe.maxSafeBuy,
-          safetyReserve: safe.safetyReserve,
-          x2Rule: listingPrice * 2 <= safe.safeResale,
+          safeResale: resaleTarget,
+          maxSafeBuy,
+          safetyReserve,
+          x2Rule: listingPrice * 2.2 <= resaleTarget,
           margin,
           marginRate: Number(marginRate.toFixed(2)),
           demand: demandScore,
@@ -804,8 +822,8 @@ function buildOpportunities(scan: Scan, items: DetectedItem[]) {
           popularity: Math.min(98, demandScore + 4 - index),
           link: item.link,
           imageUrl: item.imageUrl || "",
-          signal: `${item.source === "api" ? "Catalogue Vinted lu" : "Fiche Vinted lue"} + image + prix + style vendable ${sellable.toFixed(1)}/10`,
-          reason: `Prix annonce: ${listingPrice} EUR. Likes lus: ${likes}. Revente visee prudente: ${resaleTarget} EUR. Achat max conseille: ${safe.maxSafeBuy} EUR.`,
+          signal: `${item.source === "api" ? "Catalogue Vinted lu" : "Fiche Vinted lue"} + image + prix exact + revente cassee volontairement (${sellable.toFixed(1)}/10 vendable)`,
+          reason: `Prix annonce: ${listingPrice} EUR. Likes lus: ${likes}. Cote prudente: ${resaleTarget} EUR apres marge de securite. Achat max pepite: ${maxSafeBuy} EUR.`,
           risk: scan.risk,
           condition: item.condition || "A verifier",
           sellerSignal: `Si le prix est un peu haut, regarde le dressing vendeur pour tenter un lot et viser -30% a -40%.`,

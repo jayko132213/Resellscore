@@ -609,7 +609,7 @@ export function WeeklyOpportunities() {
               Annonces directes premium
             </p>
             <p className="mt-2 text-sm leading-6 text-muted">
-              Mode rapide: le bot lit le catalogue Vinted en premier, filtre les annonces trop vieilles et evite les niches a fausses marges.
+              Mode pepite: le bot lit le catalogue Vinted, casse la cote de revente et ne garde que les annonces avec un vrai ecart.
             </p>
           </div>
           <span className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-accent/25 bg-accent/10 px-4 text-sm font-black text-accent">
@@ -674,12 +674,12 @@ export function WeeklyOpportunities() {
                         <p className="text-2xl font-black text-white">{item.listingPrice || item.buy} EUR</p>
                       </div>
                       <div className="text-xs font-bold text-muted">
-                        Revente prudente <span className="text-accent">{item.safeResale} EUR</span> - Achat max <span className="text-accent">{item.maxSafeBuy} EUR</span>
+                        Cote prudente <span className="text-accent">{item.safeResale} EUR</span> - Achat max pepite <span className="text-accent">{item.maxSafeBuy} EUR</span>
                       </div>
                     </div>
 
                     <div className="mt-3 grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
-                      <Mini label="Marge estimee" value={`+${item.margin} EUR`} highlight />
+                      <Mini label="Marge prudente" value={`+${item.margin} EUR`} highlight />
                       <Mini label="Likes" value={item.likes === null ? "non lus" : String(item.likes)} />
                       <Mini label="Potentiel" value={item.likes === null ? "a verifier" : `${item.demand}%`} />
                       <Mini label="Reserve" value={`${item.safetyReserve} EUR`} />
