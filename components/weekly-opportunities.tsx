@@ -41,26 +41,6 @@ type LiveOpportunity = {
   quickDescription: string;
 };
 
-type Trend = {
-  id: string;
-  title: string;
-  category: string;
-  season: string;
-  budget: string;
-  buyMin: number;
-  buyMax: number;
-  resale: string;
-  marginScore: number;
-  seasonScore: number;
-  safetyScore: number;
-  demand: string;
-  whyNow: string;
-  searchIdeas: string[];
-  checks: string[];
-  avoid: string;
-  saleAngle: string;
-};
-
 type NichePreset = {
   id: string;
   label: string;
@@ -174,161 +154,6 @@ const nichePresets: NichePreset[] = [
   { id: "hiver", label: "Saison hiver", description: "Mailles, laine, doudounes, achats avant la demande.", searches: [{ id: "winter-knit", label: "Mailles" }, { id: "winter-puffer", label: "Doudounes" }] }
 ];
 
-const trends: Trend[] = [
-  {
-    id: "summer-nike-shorts",
-    title: "Shorts Nike, Adidas et Umbro colores",
-    category: "Ete / sportwear",
-    season: "Tres bon de juin a aout",
-    budget: "10-25 EUR",
-    buyMin: 10,
-    buyMax: 25,
-    resale: "24-45 EUR",
-    marginScore: 7.8,
-    seasonScore: 9.2,
-    safetyScore: 8.5,
-    demand: "Demande haute si couleur forte, taille M/L et logo visible.",
-    whyNow: "En ete, les shorts propres et colores partent mieux, surtout avec photos portees ou fond lumineux.",
-    searchIdeas: ["short Nike vert", "short Adidas vintage", "short Umbro nylon", "short football retro"],
-    checks: ["Verifier elastique", "Demander mesure taille", "Regarder taches entrejambe", "Logo pas craquele"],
-    avoid: "Evite les shorts sans marque a plus de 12 EUR ou les tailles trop petites sans mesures.",
-    saleAngle: "Mets en avant la couleur, la coupe, la taille exacte et le cote parfait vacances/festival."
-  },
-  {
-    id: "ralph-cable-knit",
-    title: "Pulls Ralph Lauren torsades",
-    category: "Classique premium",
-    season: "A acheter hors saison",
-    budget: "15-35 EUR",
-    buyMin: 15,
-    buyMax: 35,
-    resale: "45-80 EUR",
-    marginScore: 8.6,
-    seasonScore: 7.4,
-    safetyScore: 8.2,
-    demand: "Tres liquide si logo visible, couleur creme/marine/gris et taille S a L.",
-    whyNow: "Hors hiver, certains vendeurs bradent. Tu peux stocker et revendre plus haut quand le froid revient.",
-    searchIdeas: ["Ralph Lauren pull torsade", "Polo Ralph Lauren maille", "pull coton cable knit"],
-    checks: ["Photo etiquette marque", "Col pas detendu", "Pas de trou maille", "Mesure aisselle a aisselle"],
-    avoid: "Evite les pulls bouloches avec col fatigue, meme pas chers.",
-    saleAngle: "Vends le cote intemporel, propre, facile a porter avec jean ou pantalon habille."
-  },
-  {
-    id: "gorpcore-fleece",
-    title: "Polaires outdoor Nike ACG, Patagonia, The North Face",
-    category: "Gorpcore",
-    season: "Monte avant automne",
-    budget: "25-70 EUR",
-    buyMin: 25,
-    buyMax: 70,
-    resale: "65-150 EUR",
-    marginScore: 8.9,
-    seasonScore: 8.3,
-    safetyScore: 7.7,
-    demand: "Forte demande si zip OK, logo brode et coloris sobre ou vintage.",
-    whyNow: "Le style outdoor reste fort. Les bonnes polaires se vendent vite quand les temperatures baissent.",
-    searchIdeas: ["Nike ACG polaire", "Patagonia Synchilla", "The North Face fleece", "Columbia titanium"],
-    checks: ["Zip entier", "Poignets pas uses", "Bouloches acceptables", "Etiquette taille visible"],
-    avoid: "Attention aux polaires trop usees ou photos floues qui cachent les manches.",
-    saleAngle: "Mets en avant chaleur, coupe, matiere, logo et usage ville/outdoor."
-  },
-  {
-    id: "levis-501",
-    title: "Levi's 501 / 505 avec vraies mesures",
-    category: "Denim",
-    season: "Stable toute l'annee",
-    budget: "15-35 EUR",
-    buyMin: 15,
-    buyMax: 35,
-    resale: "38-75 EUR",
-    marginScore: 7.9,
-    seasonScore: 7.8,
-    safetyScore: 8.8,
-    demand: "Bonne rotation si taille W30-W34, longueur claire et coupe non retouchee bizarre.",
-    whyNow: "C'est une niche safe : moins hype, mais tres reguliere si tu donnes les mesures propres.",
-    searchIdeas: ["Levis 501 W32", "Levis 505 made in USA", "jean Levi's straight vintage"],
-    checks: ["Largeur taille", "Longueur jambe", "Ourlet", "Usure entrejambe"],
-    avoid: "N'achete pas sans mesures, les retours mentaux des acheteurs viennent presque toujours de la taille.",
-    saleAngle: "Annonce avec mesures nettes, coupe expliquee et photos face/dos/etiquette."
-  },
-  {
-    id: "football-shirts",
-    title: "Maillots de foot retro ou clubs populaires",
-    category: "Sport collector",
-    season: "Pics pendant compet et mercato",
-    budget: "15-60 EUR",
-    buyMin: 15,
-    buyMax: 60,
-    resale: "35-120 EUR",
-    marginScore: 8.2,
-    seasonScore: 8.7,
-    safetyScore: 6.9,
-    demand: "Tres bon si club connu, saison precise, sponsor propre et flocage en bon etat.",
-    whyNow: "La demande bouge avec les competitions, transferts et tendances TikTok/maillots retro.",
-    searchIdeas: ["maillot retro Nike", "maillot PSG vintage", "maillot France 98", "maillot Adidas ancien"],
-    checks: ["Authenticite etiquette", "Flocage pas colle", "Sponsor pas craquele", "Taille exacte"],
-    avoid: "Beaucoup de copies : si le prix est trop bas sur une piece rare, demande plusieurs photos.",
-    saleAngle: "Raconte la saison, le club, l'etat du flocage et le style streetwear."
-  },
-  {
-    id: "winter-puffers",
-    title: "Doudounes Moncler, The North Face, Napapijri",
-    category: "Hiver premium",
-    season: "A sourcer avant octobre",
-    budget: "80-450 EUR",
-    buyMin: 80,
-    buyMax: 450,
-    resale: "160-700 EUR",
-    marginScore: 8.4,
-    seasonScore: 7.6,
-    safetyScore: 5.8,
-    demand: "Grosse marge possible, mais risque d'authenticite plus eleve.",
-    whyNow: "Le meilleur moment est souvent avant que tout le monde recherche une doudoune.",
-    searchIdeas: ["Moncler Maya certilogo", "The North Face Nuptse", "Napapijri rainforest", "doudoune plume vintage"],
-    checks: ["Certilogo ou etiquette", "Zip", "Taches manches", "Gonflant", "Facture si luxe"],
-    avoid: "N'achete jamais une grosse marque luxe sans preuves claires d'authenticite.",
-    saleAngle: "Annonce rassurante : preuves, photos details, chaleur, coupe, defauts transparents."
-  },
-  {
-    id: "summer-accessories",
-    title: "Sacs banane, lunettes, casquettes marquees",
-    category: "Accessoires rapides",
-    season: "Tres bon ete/festivals",
-    budget: "5-25 EUR",
-    buyMin: 5,
-    buyMax: 25,
-    resale: "15-45 EUR",
-    marginScore: 7.3,
-    seasonScore: 8.9,
-    safetyScore: 8.4,
-    demand: "Petits paniers, vente rapide si marque visible et bon etat.",
-    whyNow: "Les accessoires utiles se vendent vite avant vacances, festivals et week-ends.",
-    searchIdeas: ["banane Nike vintage", "casquette Ralph Lauren", "sac Adidas retro", "lunettes Oakley vintage"],
-    checks: ["Fermeture", "Rayures", "Logo", "Taille reglable", "Interieur propre"],
-    avoid: "Evite les accessoires trop generiques, sauf lot tres bas prix.",
-    saleAngle: "Vends le cote pratique, vacances, festival, tenue complete."
-  },
-  {
-    id: "tech-risk",
-    title: "Tech tres sous-cotee, mais uniquement verifiable",
-    category: "High risk / high reward",
-    season: "Stable, depend du prix",
-    budget: "150 EUR+",
-    buyMin: 150,
-    buyMax: 1200,
-    resale: "Variable",
-    marginScore: 9.1,
-    seasonScore: 6.7,
-    safetyScore: 3.9,
-    demand: "RTX, iPhone, MacBook peuvent etre enormes, mais les arnaques aussi.",
-    whyNow: "Un prix anormalement bas peut etre une vraie opportunite ou un piege. Il faut verifier avant tout.",
-    searchIdeas: ["RTX 4070 facture", "MacBook M1 facture", "iPhone debloque facture"],
-    checks: ["Facture", "Numero de serie", "Remise main propre", "Test video", "Compte retire"],
-    avoid: "N'achete pas si le vendeur vend seulement une facture, une boite, ou refuse les preuves.",
-    saleAngle: "Si achat valide, revente basee sur preuves, tests, facture et etat batterie/composants."
-  }
-];
-
 export function WeeklyOpportunities() {
   const [sort, setSort] = useState<SortKey>("season");
   const [budget, setBudget] = useState<BudgetKey>("all");
@@ -426,17 +251,6 @@ export function WeeklyOpportunities() {
       window.clearInterval(interval);
     };
   }, [isElite, selectedNiches, selectedSearches]);
-
-  const sorted = useMemo(() => {
-    const selectedBudget = budgetFilters.find((item) => item.key === budget) || budgetFilters[0];
-    return trends
-      .filter((item) => item.buyMax >= selectedBudget.min && item.buyMin <= selectedBudget.max)
-      .sort((a, b) => {
-        if (sort === "margin") return b.marginScore - a.marginScore;
-        if (sort === "safe") return b.safetyScore - a.safetyScore;
-        return b.seasonScore - a.seasonScore;
-      });
-  }, [budget, sort]);
 
   const activeSearches = useMemo(() => {
     return nichePresets
