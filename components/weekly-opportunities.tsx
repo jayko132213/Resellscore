@@ -37,6 +37,8 @@ type LiveOpportunity = {
   condition: string;
   sellerSignal: string;
   spottedAt: string;
+  postedLabel: string;
+  quickDescription: string;
 };
 
 type Trend = {
@@ -126,14 +128,30 @@ const defaultFilter: SavedFilter = {
 };
 
 const nichePresets: NichePreset[] = [
-  { id: "nike", label: "Nike", description: "Running, sport, ACG, shorts propres.", searches: [{ id: "nike-running", label: "Running" }, { id: "nike-sport", label: "Sport" }, { id: "nike-acg", label: "ACG" }, { id: "Nike short vert", label: "Shorts" }] },
-  { id: "ralph", label: "Ralph Lauren", description: "Pull torsade, chemises Oxford, accessoires.", searches: [{ id: "ralph-knit", label: "Pull torsade" }, { id: "ralph-oxford", label: "Oxford" }, { id: "ralph-cap", label: "Casquettes" }] },
-  { id: "adidas", label: "Adidas", description: "Samba, shorts, survetements retro.", searches: [{ id: "adidas-samba", label: "Samba" }, { id: "Adidas short vintage", label: "Shorts" }, { id: "adidas-track", label: "Survetements" }] },
-  { id: "maillots", label: "Maillots", description: "PSG, Manchester, Nike retro, clubs populaires.", searches: [{ id: "maillot retro Nike", label: "Nike retro" }, { id: "football-psg", label: "PSG" }, { id: "football-manchester", label: "Manchester" }] },
-  { id: "outdoor", label: "Outdoor", description: "Arc'teryx, Patagonia, TNF, gorpcore.", searches: [{ id: "outdoor-arcteryx", label: "Arc'teryx" }, { id: "Patagonia Synchilla", label: "Patagonia" }, { id: "outdoor-tnf", label: "TNF" }] },
-  { id: "workwear", label: "Workwear", description: "Carhartt, vestes solides, coupes demandees.", searches: [{ id: "workwear-carhartt", label: "Carhartt" }] },
-  { id: "denim", label: "Denim", description: "Levi's 501, mesures propres, pieces safe.", searches: [{ id: "denim-levis", label: "Levi's 501" }] },
-  { id: "designer", label: "Designer", description: "Stone Island et pieces premium verifiables.", searches: [{ id: "designer-stone", label: "Stone Island" }] },
+  { id: "niche", label: "Niches x3-x10", description: "Bouton special: recherches rares, fortes marges et demande niche.", searches: [
+    { id: "topshop-kate-moss", label: "Topshop Kate Moss" },
+    { id: "sweater-shop", label: "The Sweater Shop" },
+    { id: "patagonia-retro", label: "Patagonia retro" },
+    { id: "tommy-crest", label: "Tommy crest" },
+    { id: "levis-big-e", label: "Levi's Big E" },
+    { id: "oakley-y2k", label: "Oakley Y2K" },
+    { id: "diesel-y2k", label: "Diesel Y2K" },
+    { id: "miss-sixty", label: "Miss Sixty" },
+    { id: "football-bucket", label: "Bucket foot" },
+    { id: "balletcore-shoes", label: "Balletcore shoes" },
+    { id: "animal-print-sneakers", label: "Sneakers animal print" },
+    { id: "metallic-sneakers", label: "Sneakers metalliques" }
+  ] },
+  { id: "nike", label: "Nike", description: "Running, sport, ACG, pulls, shorts propres.", searches: [{ id: "nike-running", label: "Nike running" }, { id: "nike-sport", label: "Nike sport" }, { id: "nike-acg", label: "Nike ACG" }, { id: "nike-pull", label: "Nike pull" }, { id: "Nike short vert", label: "Nike shorts" }, { id: "nike-track", label: "Nike track jacket" }] },
+  { id: "ralph", label: "Ralph Lauren", description: "Pull torsade, chemises Oxford, casquettes, old money.", searches: [{ id: "ralph-knit", label: "Pull torsade" }, { id: "ralph-oxford", label: "Oxford" }, { id: "ralph-cap", label: "Casquettes" }, { id: "ralph-rugby", label: "Rugby shirt" }, { id: "ralph-linen", label: "Lin ete" }] },
+  { id: "adidas", label: "Adidas", description: "Samba, shorts, survetements retro, football.", searches: [{ id: "adidas-samba", label: "Samba" }, { id: "Adidas short vintage", label: "Shorts" }, { id: "adidas-track", label: "Survetements" }, { id: "adidas-tokyo", label: "Tokyo/Paris" }, { id: "adidas-football", label: "Football retro" }] },
+  { id: "maillots", label: "Maillots / Blokecore", description: "PSG, Manchester, clubs populaires, foot fashion.", searches: [{ id: "maillot retro Nike", label: "Nike retro" }, { id: "football-psg", label: "PSG" }, { id: "football-manchester", label: "Manchester" }, { id: "football-inter", label: "Inter Milan" }, { id: "football-france", label: "France retro" }, { id: "football-training", label: "Training tops" }] },
+  { id: "outdoor", label: "Outdoor / Gorpcore", description: "Arc'teryx, Patagonia, TNF, Salomon, Columbia.", searches: [{ id: "outdoor-arcteryx", label: "Arc'teryx" }, { id: "Patagonia Synchilla", label: "Patagonia" }, { id: "outdoor-tnf", label: "TNF" }, { id: "outdoor-salomon", label: "Salomon" }, { id: "outdoor-columbia", label: "Columbia Titanium" }, { id: "outdoor-fjallraven", label: "Fjallraven" }] },
+  { id: "workwear", label: "Workwear", description: "Carhartt, Dickies, vestes solides, coupes demandees.", searches: [{ id: "workwear-carhartt", label: "Carhartt Detroit" }, { id: "workwear-dickies", label: "Dickies" }, { id: "workwear-chore", label: "Chore jacket" }] },
+  { id: "denim", label: "Denim", description: "Levi's 501, trucker, jorts, mesures propres.", searches: [{ id: "denim-levis", label: "Levi's 501" }, { id: "denim-trucker", label: "Trucker jacket" }, { id: "denim-jorts", label: "Jorts" }] },
+  { id: "designer", label: "Designer", description: "Stone Island, CP Company, pieces premium verifiables.", searches: [{ id: "designer-stone", label: "Stone Island" }, { id: "designer-cp", label: "CP Company" }, { id: "designer-fred-perry", label: "Fred Perry Oxford" }] },
+  { id: "sneakers", label: "Sneakers 2026", description: "Speedcat, slim, metallic, running chunky, ballet sneakers.", searches: [{ id: "puma-speedcat", label: "Puma Speedcat" }, { id: "puma-h-street", label: "Puma H-Street" }, { id: "fila-vintage", label: "Fila vintage" }, { id: "slim-sneakers", label: "Slim sneakers" }] },
+  { id: "accessoires", label: "Accessoires rapides", description: "Sacs banane, casquettes, lunettes, petits paniers rapides.", searches: [{ id: "bum-bag-vintage", label: "Sac banane vintage" }, { id: "cap-vintage-logo", label: "Casquette logo" }, { id: "sunglasses-y2k", label: "Lunettes Y2K" }] },
   { id: "tech", label: "Tech", description: "Seulement si preuves, facture et risque compris.", searches: [{ id: "tech-iphone", label: "iPhone" }] },
   { id: "ete", label: "Saison ete", description: "Jupes, robes, chemisiers, pieces propres et lumineuses.", searches: [{ id: "summer-skirt-premium", label: "Jupes" }, { id: "summer-dress-premium", label: "Robes" }, { id: "summer-blouse", label: "Chemisiers" }] },
   { id: "hiver", label: "Saison hiver", description: "Mailles, laine, doudounes, achats avant la demande.", searches: [{ id: "winter-knit", label: "Mailles" }, { id: "winter-puffer", label: "Doudounes" }] }
@@ -301,8 +319,9 @@ export function WeeklyOpportunities() {
   const [planLoaded, setPlanLoaded] = useState(false);
   const [liveItems, setLiveItems] = useState<LiveOpportunity[]>([]);
   const [seenLinks, setSeenLinks] = useState<string[]>([]);
-  const [selectedNiches, setSelectedNiches] = useState<string[]>(["nike", "ralph", "maillots"]);
+  const [selectedNiches, setSelectedNiches] = useState<string[]>(["niche", "nike", "ralph", "maillots"]);
   const [selectedSearches, setSelectedSearches] = useState<string[]>([]);
+  const [nicheSearch, setNicheSearch] = useState("");
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [savedFilters, setSavedFilters] = useState<SavedFilter[]>([]);
   const [draftFilter, setDraftFilter] = useState<SavedFilter>(defaultFilter);
@@ -399,8 +418,20 @@ export function WeeklyOpportunities() {
   const activeSearches = useMemo(() => {
     return nichePresets
       .filter((niche) => selectedNiches.includes(niche.id))
-      .flatMap((niche) => niche.searches);
+      .flatMap((niche) => niche.searches.map((search) => ({ ...search, nicheId: niche.id, nicheLabel: niche.label })));
   }, [selectedNiches]);
+
+  const allNicheSearches = useMemo(() => {
+    return nichePresets.flatMap((niche) => niche.searches.map((search) => ({ ...search, nicheId: niche.id, nicheLabel: niche.label })));
+  }, []);
+
+  const suggestedSearches = useMemo(() => {
+    const query = nicheSearch.trim().toLowerCase();
+    const base = query
+      ? allNicheSearches.filter((search) => `${search.label} ${search.id} ${search.nicheLabel}`.toLowerCase().includes(query))
+      : activeSearches;
+    return base.slice(0, query ? 36 : 48);
+  }, [activeSearches, allNicheSearches, nicheSearch]);
 
   function markSeen(link: string) {
     setSeenLinks((current) => {
@@ -419,7 +450,10 @@ export function WeeklyOpportunities() {
     setSelectedSearches([]);
   }
 
-  function toggleSearch(id: string) {
+  function toggleSearch(id: string, nicheId?: string) {
+    if (nicheId) {
+      setSelectedNiches((current) => current.includes(nicheId) ? current : [...current, nicheId]);
+    }
     setSelectedSearches((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]);
   }
 
@@ -611,27 +645,53 @@ export function WeeklyOpportunities() {
         </div>
 
         <div className="mt-5">
-          <p className="text-xs font-black uppercase text-muted">Sous-recherches actives</p>
-          <div className="mt-2 flex flex-wrap gap-2">
-            {activeSearches.map((search) => {
-              const active = selectedSearches.length === 0 || selectedSearches.includes(search.id);
+          <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
+            <label className="grid gap-2 text-sm font-bold text-white">
+              Recherche de niche
+              <input
+                value={nicheSearch}
+                onChange={(event) => setNicheSearch(event.target.value)}
+                className="h-11 rounded-md border border-white/10 bg-white/[0.06] px-3 text-sm font-semibold outline-none transition focus:border-accent"
+                placeholder="Tape Nike, Ralph, gorpcore, maillot, Y2K..."
+              />
+            </label>
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedNiches(["niche"]);
+                setSelectedSearches([]);
+                setNicheSearch("");
+              }}
+              className="h-11 rounded-md border border-accent/35 bg-accent/10 px-4 text-sm font-black text-accent hover:bg-accent/15"
+            >
+              Mode niche
+            </button>
+          </div>
+
+          <p className="mt-4 text-xs font-black uppercase text-muted">
+            {nicheSearch.trim() ? "Suggestions trouvees" : "Sous-recherches actives"}
+          </p>
+          <div className="mt-2 flex max-h-44 flex-wrap gap-2 overflow-y-auto pr-1">
+            {suggestedSearches.map((search) => {
+              const active = selectedSearches.length === 0 ? selectedNiches.includes(search.nicheId) : selectedSearches.includes(search.id);
               return (
                 <button
                   key={search.id}
                   type="button"
-                  onClick={() => toggleSearch(search.id)}
+                  onClick={() => toggleSearch(search.id, search.nicheId)}
                   className={cn(
                     "h-9 rounded-md border px-3 text-xs font-bold transition",
                     active ? "border-accent/40 bg-accent/10 text-accent" : "border-white/10 bg-white/[0.03] text-muted"
                   )}
                 >
                   {search.label}
+                  <span className="ml-1 text-[10px] opacity-70">{search.nicheLabel}</span>
                 </button>
               );
             })}
           </div>
           <p className="mt-2 text-xs text-muted">
-            Si aucun sous-filtre n'est choisi, le bot scanne toutes les sous-recherches des niches cochees.
+            Si aucun sous-filtre n'est choisi, le bot scanne toutes les sous-recherches des niches cochees. Le bouton Niche ajoute les recherches a plus forte marge.
           </p>
         </div>
 
@@ -702,7 +762,7 @@ export function WeeklyOpportunities() {
                       </span>
                     </div>
                     <h3 className="mt-2 line-clamp-2 text-lg font-black text-white">{item.title}</h3>
-                    <p className="mt-1 text-xs font-semibold text-muted">{item.condition} - {item.spottedAt}</p>
+                    <p className="mt-1 text-xs font-semibold text-muted">Etat: {item.condition} - {item.postedLabel || item.spottedAt}</p>
 
                     <div className="mt-3 flex flex-wrap items-end gap-3">
                       <div>
@@ -721,6 +781,9 @@ export function WeeklyOpportunities() {
                       <Mini label="Reserve" value={`${item.safetyReserve} EUR`} />
                     </div>
 
+                    <p className="mt-3 rounded-md border border-white/10 bg-black/20 px-3 py-2 text-xs leading-5 text-slate-200">
+                      {item.quickDescription || item.reason}
+                    </p>
                     <p className="mt-3 text-xs leading-5 text-slate-300">{item.signal} - {item.likeVelocity}</p>
                     <p className="mt-1 text-xs leading-5 text-amber-100">{item.risk}</p>
 
@@ -901,8 +964,8 @@ function vintedSearchUrl(query: string, maxPrice: number) {
 
 function liveApiUrl(niches: string[], searches: string[]) {
   const params = new URLSearchParams();
-  if (niches.length > 0) params.set("niches", niches.join(","));
   if (searches.length > 0) params.set("searches", searches.join(","));
+  if (searches.length === 0 && niches.length > 0) params.set("niches", niches.join(","));
   const query = params.toString();
   return query ? `/api/opportunities/live?${query}` : "/api/opportunities/live";
 }

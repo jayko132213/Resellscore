@@ -27,6 +27,8 @@ type LiveOpportunity = {
   condition: string;
   sellerSignal: string;
   spottedAt: string;
+  postedLabel: string;
+  quickDescription: string;
 };
 
 type Scan = {
@@ -88,7 +90,47 @@ const seasonalScans: Scan[] = [
   { id: "winter-puffer", niche: "hiver", subcategory: "Doudounes", q: "doudoune vintage plume", min: 60, max: 180, category: "Hiver", retail: 260, resale: 220, demand: 84, minMargin: 55, minRate: 0.42, risk: "Verifier zip, gonflant, taches et authenticite", season: "hiver" }
 ];
 
-const allScans = Array.from(new Map([...seasonalScans, ...extraScans, ...scans].map((scan) => [scan.id || scan.q, scan])).values());
+const internetNicheScans: Scan[] = [
+  { id: "topshop-kate-moss", niche: "niche", subcategory: "Topshop Kate Moss", q: "Topshop Kate Moss", max: 45, category: "Niche mode", retail: 110, resale: 95, demand: 86, minMargin: 28, minRate: 0.75, risk: "Verifier etiquette Topshop et collaboration Kate Moss" },
+  { id: "sweater-shop", niche: "niche", subcategory: "The Sweater Shop", q: "The Sweater Shop pull", max: 28, category: "Vintage", retail: 80, resale: 62, demand: 75, minMargin: 24, minRate: 0.85, risk: "Verifier motif, bouloches et trous" },
+  { id: "patagonia-retro", niche: "niche", subcategory: "Patagonia retro", q: "Patagonia retro fleece", max: 70, category: "Gorpcore", retail: 170, resale: 140, demand: 88, minMargin: 45, minRate: 0.65, risk: "Verifier zip, bouloches et logo" },
+  { id: "tommy-crest", niche: "niche", subcategory: "Tommy crest", q: "Tommy Hilfiger crest vintage", max: 32, category: "Vintage", retail: 95, resale: 70, demand: 80, minMargin: 26, minRate: 0.8, risk: "Verifier logo brode et etat du col" },
+  { id: "levis-big-e", niche: "niche", subcategory: "Levi's Big E", q: "Levis Big E vintage", max: 90, category: "Denim rare", retail: 220, resale: 190, demand: 82, minMargin: 70, minRate: 0.75, risk: "Verifier etiquette Big E, mesures et authenticite" },
+  { id: "oakley-y2k", niche: "niche", subcategory: "Oakley Y2K", q: "Oakley y2k vintage", max: 45, category: "Y2K", retail: 140, resale: 95, demand: 84, minMargin: 35, minRate: 0.8, risk: "Verifier rayures, branches et modele" },
+  { id: "diesel-y2k", niche: "niche", subcategory: "Diesel Y2K", q: "Diesel y2k", max: 40, category: "Y2K", retail: 120, resale: 82, demand: 82, minMargin: 28, minRate: 0.7, risk: "Verifier taille, coupe et usure" },
+  { id: "miss-sixty", niche: "niche", subcategory: "Miss Sixty", q: "Miss Sixty vintage", max: 38, category: "Y2K", retail: 110, resale: 78, demand: 78, minMargin: 26, minRate: 0.7, risk: "Verifier coupe, mesures et taches" },
+  { id: "football-bucket", niche: "niche", subcategory: "Bucket foot", q: "bucket hat football vintage", max: 18, category: "Blokecore", retail: 45, resale: 38, demand: 76, minMargin: 14, minRate: 0.8, risk: "Verifier taches, forme et club" },
+  { id: "balletcore-shoes", niche: "niche", subcategory: "Balletcore shoes", q: "ballerine satin sneaker", max: 35, category: "Balletcore", retail: 95, resale: 65, demand: 76, minMargin: 20, minRate: 0.55, risk: "Verifier semelle, odeur et taches" },
+  { id: "animal-print-sneakers", niche: "niche", subcategory: "Sneakers animal print", q: "sneakers leopard", max: 45, category: "Sneakers", retail: 120, resale: 82, demand: 78, minMargin: 26, minRate: 0.6, risk: "Verifier usure semelle et tendances trop rapides" },
+  { id: "metallic-sneakers", niche: "niche", subcategory: "Sneakers metalliques", q: "sneakers metallic silver", max: 45, category: "Sneakers", retail: 120, resale: 82, demand: 78, minMargin: 26, minRate: 0.6, risk: "Verifier plis, couleur et talon interieur" },
+  { id: "nike-pull", niche: "nike", subcategory: "Nike pull", q: "pull Nike vintage", max: 30, category: "Nike", retail: 70, resale: 58, demand: 84, minMargin: 20, minRate: 0.7, risk: "Verifier col, logo et bouloches" },
+  { id: "nike-track", niche: "nike", subcategory: "Nike track jacket", q: "Nike track jacket vintage", max: 45, category: "Nike", retail: 95, resale: 78, demand: 86, minMargin: 28, minRate: 0.65, risk: "Verifier zip, manches et taches" },
+  { id: "ralph-rugby", niche: "ralph", subcategory: "Rugby shirt", q: "Ralph Lauren rugby", max: 35, category: "Ralph Lauren", retail: 130, resale: 78, demand: 80, minMargin: 28, minRate: 0.75, risk: "Verifier col blanc et traces aux manches" },
+  { id: "ralph-linen", niche: "ralph", subcategory: "Lin ete", q: "Ralph Lauren lin chemise", max: 25, category: "Ralph Lauren", retail: 120, resale: 55, demand: 78, minMargin: 18, minRate: 0.7, risk: "Verifier transparence, taches et etiquette matiere" },
+  { id: "adidas-tokyo", niche: "adidas", subcategory: "Adidas Tokyo Paris", q: "Adidas Tokyo Paris", max: 55, category: "Sneakers", retail: 120, resale: 88, demand: 83, minMargin: 25, minRate: 0.5, risk: "Verifier semelle et modele exact" },
+  { id: "adidas-football", niche: "adidas", subcategory: "Adidas football retro", q: "Adidas football vintage", max: 38, category: "Blokecore", retail: 85, resale: 70, demand: 84, minMargin: 24, minRate: 0.65, risk: "Verifier sponsor et etiquette" },
+  { id: "football-inter", niche: "maillots", subcategory: "Inter Milan", q: "maillot Inter Milan vintage", max: 55, category: "Maillots", retail: 95, resale: 92, demand: 84, minMargin: 25, minRate: 0.5, risk: "Verifier authenticite, sponsor et flocage" },
+  { id: "football-france", niche: "maillots", subcategory: "France retro", q: "maillot France vintage", max: 60, category: "Maillots", retail: 100, resale: 105, demand: 90, minMargin: 32, minRate: 0.55, risk: "Verifier etiquette, badge et flocage" },
+  { id: "football-training", niche: "maillots", subcategory: "Training tops", q: "football training top vintage", max: 32, category: "Blokecore", retail: 70, resale: 58, demand: 80, minMargin: 18, minRate: 0.6, risk: "Verifier sponsor et zip" },
+  { id: "outdoor-salomon", niche: "outdoor", subcategory: "Salomon", q: "Salomon gorpcore", max: 55, category: "Gorpcore", retail: 130, resale: 92, demand: 84, minMargin: 30, minRate: 0.6, risk: "Verifier semelle, lacets et usure" },
+  { id: "outdoor-columbia", niche: "outdoor", subcategory: "Columbia Titanium", q: "Columbia Titanium vintage", max: 45, category: "Gorpcore", retail: 110, resale: 82, demand: 79, minMargin: 28, minRate: 0.65, risk: "Verifier zip, membrane et manches" },
+  { id: "outdoor-fjallraven", niche: "outdoor", subcategory: "Fjallraven", q: "Fjallraven vintage", max: 55, category: "Gorpcore", retail: 140, resale: 95, demand: 78, minMargin: 32, minRate: 0.6, risk: "Verifier logo, zip et taches" },
+  { id: "workwear-dickies", niche: "workwear", subcategory: "Dickies", q: "Dickies workwear vintage", max: 30, category: "Workwear", retail: 75, resale: 58, demand: 78, minMargin: 20, minRate: 0.7, risk: "Verifier taille, usure et coupe" },
+  { id: "workwear-chore", niche: "workwear", subcategory: "Chore jacket", q: "chore jacket vintage", max: 45, category: "Workwear", retail: 120, resale: 82, demand: 76, minMargin: 28, minRate: 0.65, risk: "Verifier boutons, manches et taches" },
+  { id: "denim-trucker", niche: "denim", subcategory: "Trucker jacket", q: "Levis trucker jacket vintage", max: 45, category: "Denim", retail: 120, resale: 82, demand: 82, minMargin: 28, minRate: 0.65, risk: "Verifier mesures et usure col" },
+  { id: "denim-jorts", niche: "denim", subcategory: "Jorts", q: "Levis jorts vintage", max: 25, category: "Denim", retail: 65, resale: 45, demand: 78, minMargin: 15, minRate: 0.6, risk: "Verifier longueur et entrejambe" },
+  { id: "designer-cp", niche: "designer", subcategory: "CP Company", q: "CP Company vintage", max: 90, category: "Designer", retail: 220, resale: 155, demand: 82, minMargin: 45, minRate: 0.55, risk: "Verifier lentilles, etiquette et authenticite" },
+  { id: "designer-fred-perry", niche: "designer", subcategory: "Fred Perry Oxford", q: "Fred Perry oxford shirt", max: 30, category: "Designer", retail: 95, resale: 62, demand: 76, minMargin: 22, minRate: 0.75, risk: "Verifier col, logo et coupe" },
+  { id: "puma-speedcat", niche: "sneakers", subcategory: "Puma Speedcat", q: "Puma Speedcat", max: 55, category: "Sneakers", retail: 110, resale: 88, demand: 85, minMargin: 25, minRate: 0.5, risk: "Verifier semelle fine et talon" },
+  { id: "puma-h-street", niche: "sneakers", subcategory: "Puma H-Street", q: "Puma H Street", max: 50, category: "Sneakers", retail: 100, resale: 82, demand: 78, minMargin: 22, minRate: 0.5, risk: "Verifier modele exact et usure" },
+  { id: "fila-vintage", niche: "sneakers", subcategory: "Fila vintage", q: "Fila vintage sneakers", max: 35, category: "Sneakers", retail: 85, resale: 62, demand: 74, minMargin: 20, minRate: 0.65, risk: "Verifier semelle et jaunissement" },
+  { id: "slim-sneakers", niche: "sneakers", subcategory: "Slim sneakers", q: "slim sneakers vintage", max: 35, category: "Sneakers", retail: 85, resale: 62, demand: 76, minMargin: 20, minRate: 0.6, risk: "Verifier usure et marque lisible" },
+  { id: "bum-bag-vintage", niche: "accessoires", subcategory: "Sac banane vintage", q: "sac banane vintage logo", max: 16, category: "Accessoires", retail: 45, resale: 34, demand: 76, minMargin: 12, minRate: 0.8, risk: "Verifier zip, taches et sangle" },
+  { id: "cap-vintage-logo", niche: "accessoires", subcategory: "Casquette logo", q: "casquette vintage logo", max: 16, category: "Accessoires", retail: 40, resale: 32, demand: 74, minMargin: 10, minRate: 0.7, risk: "Verifier forme, traces et scratch" },
+  { id: "sunglasses-y2k", niche: "accessoires", subcategory: "Lunettes Y2K", q: "lunettes y2k vintage", max: 18, category: "Accessoires", retail: 50, resale: 38, demand: 76, minMargin: 14, minRate: 0.8, risk: "Verifier rayures, branches et style portable" }
+];
+
+const allScans = Array.from(new Map([...internetNicheScans, ...seasonalScans, ...extraScans, ...scans].map((scan) => [scan.id || scan.q, scan])).values());
 
 const badListingWords = [
   "facture",
@@ -284,6 +326,29 @@ function parseFavoriteCount(html: string) {
   return null;
 }
 
+function parsePostedLabel(html: string) {
+  const text = cleanText(html).toLowerCase();
+  const match = text.match(/il y a\s+(?:environ\s+)?[0-9]+\s*(?:seconde|secondes|minute|minutes|heure|heures|jour|jours)/i);
+  if (match?.[0]) return match[0].replace(/^./, (letter) => letter.toUpperCase());
+  return "";
+}
+
+function parseConditionLabel(html: string) {
+  const text = cleanText(html).toLowerCase();
+  if (text.includes("neuf avec etiquette") || text.includes("neuf avec étiquette")) return "Neuf avec etiquette";
+  if (text.includes("neuf sans etiquette") || text.includes("neuf sans étiquette")) return "Neuf sans etiquette";
+  if (text.includes("tres bon etat") || text.includes("très bon état")) return "Tres bon etat";
+  if (text.includes("bon etat") || text.includes("bon état")) return "Bon etat";
+  if (text.includes("satisfaisant")) return "Satisfaisant";
+  return "A verifier";
+}
+
+function quickDescription(scan: Scan, listingPrice: number, resale: number, likes: number | null, condition: string) {
+  const safe = safeBuyPrice(resale);
+  const likeText = likes === null ? "likes non lisibles" : `${likes} likes lus`;
+  return `${scan.subcategory || scan.q}: annonce a ${listingPrice} EUR, revente prudente ${safe.safeResale} EUR, achat max ${safe.maxSafeBuy} EUR, ${likeText}, etat ${condition.toLowerCase()}.`;
+}
+
 function likeVelocityLabel(likes: number | null, demand: number) {
   if (likes === null) return demand >= 86 ? "Demande probable forte, likes non lisibles" : "Likes non lisibles";
   if (likes >= 20) return "Tres fort: deja 20+ likes";
@@ -322,8 +387,10 @@ async function fetchListingDetail(item: { link: string; title: string }) {
     const title = parseDetailTitle(html, item.title);
     const imageUrl = parseDetailImage(html);
     const likes = parseFavoriteCount(html);
+    const postedLabel = parsePostedLabel(html);
+    const condition = parseConditionLabel(html);
     if (!listingPrice || !looksReliable(title)) return null;
-    return { ...item, title, listingPrice, likes, imageUrl };
+    return { ...item, title, listingPrice, likes, imageUrl, postedLabel, condition };
   } catch {
     clearTimeout(timeout);
     return null;
@@ -358,7 +425,7 @@ async function fetchSearch(scan: Scan) {
     const checkedItems = await Promise.all(extractLinks(html).map(fetchListingDetail));
 
     return checkedItems
-      .filter((item): item is { link: string; title: string; listingPrice: number; likes: number | null; imageUrl: string } => Boolean(item))
+      .filter((item): item is { link: string; title: string; listingPrice: number; likes: number | null; imageUrl: string; postedLabel: string; condition: string } => Boolean(item))
       .filter((item) => {
         const price = item.listingPrice;
         const safe = safeBuyPrice(scan.resale);
@@ -404,9 +471,11 @@ async function fetchSearch(scan: Scan) {
           signal: `Prix lu + style vendable ${sellable.toFixed(1)}/10`,
           reason: `Prix annonce: ${listingPrice} EUR. Revente visee: ${scan.resale} EUR. Revente prudente apres marge de securite: ${safe.safeResale} EUR. Achat max conseille: ${safe.maxSafeBuy} EUR.`,
           risk: scan.risk,
-          condition: "A verifier sur photos vendeur",
+          condition: item.condition || "A verifier",
           sellerSignal: `Si le prix est un peu haut, regarde le dressing vendeur pour tenter un lot et viser -30% a -40%.`,
-          spottedAt: `Live ${new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}`
+          spottedAt: `Live ${new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}`,
+          postedLabel: item.postedLabel || `Detecte a ${new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}`,
+          quickDescription: quickDescription(scan, listingPrice, scan.resale, item.likes, item.condition || "A verifier")
         };
       });
   } catch {
