@@ -22,7 +22,22 @@ type LiveOpportunity = {
   spottedAt: string;
 };
 
-const scans = [
+type Scan = {
+  id?: string;
+  niche?: string;
+  subcategory?: string;
+  q: string;
+  max: number;
+  category: string;
+  retail: number;
+  resale: number;
+  demand: number;
+  minMargin: number;
+  minRate: number;
+  risk: string;
+};
+
+const scans: Scan[] = [
   { q: "Nike short vert", max: 25, category: "Ete", retail: 45, resale: 42, demand: 84, minMargin: 12, minRate: 0.45, risk: "Verifier etiquette et etat de l'elastique" },
   { q: "Adidas short vintage", max: 22, category: "Ete", retail: 40, resale: 38, demand: 80, minMargin: 10, minRate: 0.45, risk: "Verifier taches et cordon" },
   { q: "Ralph Lauren pull torsade", max: 32, category: "Vintage", retail: 149, resale: 62, demand: 82, minMargin: 20, minRate: 0.55, risk: "Verifier col, maille et etiquette" },
@@ -36,6 +51,27 @@ const scans = [
   { q: "maillot retro Nike", max: 45, category: "Sport", retail: 90, resale: 85, demand: 88, minMargin: 25, minRate: 0.6, risk: "Verifier authenticite et flocage" },
   { q: "Nike ACG polaire", max: 60, category: "Gorpcore", retail: 130, resale: 110, demand: 91, minMargin: 30, minRate: 0.55, risk: "Verifier zip et manches" }
 ];
+
+const extraScans: Scan[] = [
+  { id: "nike-running", niche: "nike", subcategory: "Nike running", q: "Nike running vintage", max: 35, category: "Nike", retail: 70, resale: 58, demand: 86, minMargin: 16, minRate: 0.48, risk: "Verifier logo, matiere technique et traces d'usure" },
+  { id: "nike-sport", niche: "nike", subcategory: "Nike sport", q: "Nike sport vintage", max: 28, category: "Nike", retail: 55, resale: 48, demand: 84, minMargin: 14, minRate: 0.45, risk: "Verifier taches, logo et coupe" },
+  { id: "nike-acg", niche: "nike", subcategory: "Nike ACG", q: "Nike ACG polaire", max: 60, category: "Gorpcore", retail: 130, resale: 110, demand: 91, minMargin: 30, minRate: 0.55, risk: "Verifier zip et manches" },
+  { id: "ralph-knit", niche: "ralph", subcategory: "Pull torsade", q: "Ralph Lauren pull torsade", max: 32, category: "Ralph Lauren", retail: 149, resale: 62, demand: 82, minMargin: 20, minRate: 0.55, risk: "Verifier col, maille et etiquette" },
+  { id: "ralph-oxford", niche: "ralph", subcategory: "Chemise Oxford", q: "Ralph Lauren chemise oxford", max: 25, category: "Ralph Lauren", retail: 119, resale: 48, demand: 78, minMargin: 15, minRate: 0.5, risk: "Verifier col et poignets" },
+  { id: "ralph-cap", niche: "ralph", subcategory: "Casquette Ralph", q: "Ralph Lauren casquette", max: 18, category: "Accessoires", retail: 49, resale: 34, demand: 76, minMargin: 10, minRate: 0.55, risk: "Verifier forme, taches et logo" },
+  { id: "adidas-samba", niche: "adidas", subcategory: "Adidas Samba", q: "Adidas Samba cuir", max: 45, category: "Sneakers", retail: 120, resale: 75, demand: 91, minMargin: 18, minRate: 0.42, risk: "Verifier semelle et talon interieur" },
+  { id: "adidas-track", niche: "adidas", subcategory: "Survetement retro", q: "Adidas survetement vintage", max: 45, category: "Sportswear", retail: 90, resale: 78, demand: 83, minMargin: 22, minRate: 0.55, risk: "Verifier fermeture, bandes et bouloches" },
+  { id: "football-psg", niche: "maillots", subcategory: "PSG", q: "maillot PSG vintage", max: 55, category: "Maillots", retail: 95, resale: 95, demand: 90, minMargin: 28, minRate: 0.55, risk: "Verifier saison, sponsor et flocage" },
+  { id: "football-manchester", niche: "maillots", subcategory: "Manchester", q: "maillot Manchester United vintage", max: 55, category: "Maillots", retail: 95, resale: 92, demand: 87, minMargin: 25, minRate: 0.5, risk: "Verifier authenticite et etiquette" },
+  { id: "outdoor-arcteryx", niche: "outdoor", subcategory: "Arc'teryx", q: "Arc'teryx shell ancien logo", max: 110, category: "Outdoor", retail: 400, resale: 210, demand: 96, minMargin: 65, minRate: 0.65, risk: "Verifier membrane et coutures" },
+  { id: "outdoor-tnf", niche: "outdoor", subcategory: "The North Face", q: "The North Face fleece vintage", max: 65, category: "Outdoor", retail: 130, resale: 105, demand: 87, minMargin: 30, minRate: 0.52, risk: "Verifier zip, logo et manches" },
+  { id: "workwear-carhartt", niche: "workwear", subcategory: "Carhartt Detroit", q: "Carhartt Detroit jacket", max: 70, category: "Workwear", retail: 189, resale: 125, demand: 92, minMargin: 35, minRate: 0.55, risk: "Verifier zip, doublure et manches" },
+  { id: "denim-levis", niche: "denim", subcategory: "Levi's 501", q: "Levis 501 USA", max: 35, category: "Denim", retail: 110, resale: 68, demand: 89, minMargin: 20, minRate: 0.55, risk: "Verifier mesures et ourlet" },
+  { id: "designer-stone", niche: "designer", subcategory: "Stone Island", q: "Stone Island maille badge", max: 115, category: "Designer", retail: 280, resale: 180, demand: 88, minMargin: 45, minRate: 0.45, risk: "Verifier certilogo et badge" },
+  { id: "tech-iphone", niche: "tech", subcategory: "iPhone", q: "iPhone facture debloque", max: 350, category: "Tech", retail: 750, resale: 520, demand: 86, minMargin: 70, minRate: 0.25, risk: "Verifier facture, IMEI, batterie et compte retire" }
+];
+
+const allScans = Array.from(new Map([...extraScans, ...scans].map((scan) => [scan.id || scan.q, scan])).values());
 
 const badListingWords = [
   "facture",
@@ -305,8 +341,22 @@ async function fetchSearch(scan: typeof scans[number]) {
   }
 }
 
-export async function GET() {
-  const results = (await Promise.all(scans.map(fetchSearch))).flat();
+export async function GET(request: Request) {
+  const url = new URL(request.url);
+  const requestedNiches = (url.searchParams.get("niches") || "")
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+  const requestedSearches = (url.searchParams.get("searches") || "")
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+  const selectedScans = allScans
+    .filter((scan) => requestedNiches.length === 0 || requestedNiches.includes(scan.niche || ""))
+    .filter((scan) => requestedSearches.length === 0 || requestedSearches.includes(scan.id || scan.q))
+    .slice(0, 12);
+  const activeScans = selectedScans.length > 0 ? selectedScans : allScans.slice(0, 12);
+  const results = (await Promise.all(activeScans.map(fetchSearch))).flat();
   const unique = Array.from(new Map(results.map((item) => [item.link, item])).values())
     .sort((a, b) => (b.score - a.score) || (b.margin - a.margin))
     .slice(0, 10);
@@ -317,6 +367,7 @@ export async function GET() {
     live: unique.length > 0,
     message: unique.length > 0
       ? `${unique.length} annonces live avec prix exact lu sur la page annonce.`
-      : "Aucune annonce live fiable: Vinted bloque le prix exact ou aucune annonce ne passe les filtres premium."
+      : "Aucune annonce live fiable: Vinted bloque le prix exact ou aucune annonce ne passe les filtres premium.",
+    activeScans: activeScans.map((scan) => ({ id: scan.id || scan.q, niche: scan.niche || "general", label: scan.subcategory || scan.q, q: scan.q }))
   });
 }

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { ArrowUp, CheckCircle2, Crown, ExternalLink, Loader2, Lock, Search, ShieldCheck, Sparkles } from "lucide-react";
+import { ArrowUp, Bot, CheckCircle2, Crown, ExternalLink, Loader2, Lock, Search, ShieldCheck, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { normalizePlan } from "@/lib/plans";
 
@@ -52,6 +52,13 @@ type Trend = {
   saleAngle: string;
 };
 
+type NichePreset = {
+  id: string;
+  label: string;
+  description: string;
+  searches: { id: string; label: string }[];
+};
+
 const sortFilters: { key: SortKey; label: string }[] = [
   { key: "margin", label: "Marge forte" },
   { key: "season", label: "En hausse maintenant" },
@@ -63,6 +70,18 @@ const budgetFilters: { key: BudgetKey; label: string; min: number; max: number }
   { key: "small", label: "0-30 EUR", min: 0, max: 30 },
   { key: "middle", label: "30-120 EUR", min: 30, max: 120 },
   { key: "high", label: "120 EUR+", min: 120, max: Number.POSITIVE_INFINITY }
+];
+
+const nichePresets: NichePreset[] = [
+  { id: "nike", label: "Nike", description: "Running, sport, ACG, shorts propres.", searches: [{ id: "nike-running", label: "Running" }, { id: "nike-sport", label: "Sport" }, { id: "nike-acg", label: "ACG" }, { id: "Nike short vert", label: "Shorts" }] },
+  { id: "ralph", label: "Ralph Lauren", description: "Pull torsade, chemises Oxford, accessoires.", searches: [{ id: "ralph-knit", label: "Pull torsade" }, { id: "ralph-oxford", label: "Oxford" }, { id: "ralph-cap", label: "Casquettes" }] },
+  { id: "adidas", label: "Adidas", description: "Samba, shorts, survetements retro.", searches: [{ id: "adidas-samba", label: "Samba" }, { id: "Adidas short vintage", label: "Shorts" }, { id: "adidas-track", label: "Survetements" }] },
+  { id: "maillots", label: "Maillots", description: "PSG, Manchester, Nike retro, clubs populaires.", searches: [{ id: "maillot retro Nike", label: "Nike retro" }, { id: "football-psg", label: "PSG" }, { id: "football-manchester", label: "Manchester" }] },
+  { id: "outdoor", label: "Outdoor", description: "Arc'teryx, Patagonia, TNF, gorpcore.", searches: [{ id: "outdoor-arcteryx", label: "Arc'teryx" }, { id: "Patagonia Synchilla", label: "Patagonia" }, { id: "outdoor-tnf", label: "TNF" }] },
+  { id: "workwear", label: "Workwear", description: "Carhartt, vestes solides, coupes demandees.", searches: [{ id: "workwear-carhartt", label: "Carhartt" }] },
+  { id: "denim", label: "Denim", description: "Levi's 501, mesures propres, pieces safe.", searches: [{ id: "denim-levis", label: "Levi's 501" }] },
+  { id: "designer", label: "Designer", description: "Stone Island et pieces premium verifiables.", searches: [{ id: "designer-stone", label: "Stone Island" }] },
+  { id: "tech", label: "Tech", description: "Seulement si preuves, facture et risque compris.", searches: [{ id: "tech-iphone", label: "iPhone" }] }
 ];
 
 const trends: Trend[] = [
@@ -227,6 +246,8 @@ export function WeeklyOpportunities() {
   const [planLoaded, setPlanLoaded] = useState(false);
   const [liveItems, setLiveItems] = useState<LiveOpportunity[]>([]);
   const [seenLinks, setSeenLinks] = useState<string[]>([]);
+  const [selectedNiches, setSelectedNiches] = useState<string[]>(["nike", "ralph", "maillots"]);
+  const [selectedSearches, setSelectedSearches] = useState<string[]>([]);
   const [liveMessage, setLiveMessage] = useState("");
   const [liveLoading, setLiveLoading] = useState(false);
 
@@ -282,7 +303,7 @@ export function WeeklyOpportunities() {
 
     let cancelled = false;
     setLiveLoading(true);
-    fetch("/api/opportunities/live", { cache: "no-store" })
+    fetch(liveApiUrl(selectedNiches, selectedSearches), { cache: "no-store" })
       .then((response) => response.ok ? response.json() : null)
       .then((data: { items?: LiveOpportunity[]; message?: string } | null) => {
         if (cancelled) return;
@@ -315,6 +336,12 @@ export function WeeklyOpportunities() {
       });
   }, [budget, sort]);
 
+  const activeSearches = useMemo(() => {
+    return nichePresets
+      .filter((niche) => selectedNiches.includes(niche.id))
+      .flatMap((niche) => niche.searches);
+  }, [selectedNiches]);
+
   function markSeen(link: string) {
     setSeenLinks((current) => {
       if (current.includes(link)) return current;
@@ -322,6 +349,30 @@ export function WeeklyOpportunities() {
       localStorage.setItem("resellscore_seen_opportunities", JSON.stringify(next));
       return next;
     });
+  }
+
+  function toggleNiche(id: string) {
+    setSelectedNiches((current) => {
+      const next = current.includes(id) ? current.filter((item) => item !== id) : [...current, id];
+      return next.length > 0 ? next : [id];
+    });
+    setSelectedSearches([]);
+  }
+
+  function toggleSearch(id: string) {
+    setSelectedSearches((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]);
+  }
+
+  function refreshLive() {
+    setLiveLoading(true);
+    fetch(liveApiUrl(selectedNiches, selectedSearches), { cache: "no-store" })
+      .then((response) => response.ok ? response.json() : null)
+      .then((data: { items?: LiveOpportunity[]; message?: string } | null) => {
+        setLiveItems(data?.items || []);
+        setLiveMessage(data?.message || "Scanner indisponible pour le moment.");
+      })
+      .catch(() => setLiveMessage("Scanner live bloque pour le moment."))
+      .finally(() => setLiveLoading(false));
   }
 
   if (!planLoaded) {
@@ -409,6 +460,74 @@ export function WeeklyOpportunities() {
         </div>
       </div>
 
+      <section className="mt-6 rounded-lg border border-white/10 bg-panel p-5 shadow-glow">
+        <div className="flex flex-col gap-3 border-b border-white/10 pb-5 md:flex-row md:items-start md:justify-between">
+          <div>
+            <p className="flex items-center gap-2 text-sm font-black text-accent">
+              <Bot size={17} />
+              Bot Vinted par niche
+            </p>
+            <h2 className="mt-2 text-2xl font-bold">Choisis ce que le radar doit chercher</h2>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-muted">
+              Le scanner lance plusieurs recherches comme un compte Vinted non connecte: marque, sous-style, budget, marge et potentiel de revente.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={refreshLive}
+            className="inline-flex h-11 items-center justify-center gap-2 rounded-md bg-accent px-4 text-sm font-black text-ink transition hover:bg-accent/90"
+          >
+            {liveLoading ? <Loader2 size={16} className="animate-spin" /> : <Search size={16} />}
+            Scanner
+          </button>
+        </div>
+
+        <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          {nichePresets.map((niche) => {
+            const active = selectedNiches.includes(niche.id);
+            return (
+              <button
+                key={niche.id}
+                type="button"
+                onClick={() => toggleNiche(niche.id)}
+                className={cn(
+                  "rounded-lg border p-4 text-left transition",
+                  active ? "border-accent/60 bg-accent/10" : "border-white/10 bg-white/[0.03] hover:border-white/25"
+                )}
+              >
+                <span className={cn("text-sm font-black", active ? "text-accent" : "text-white")}>{niche.label}</span>
+                <span className="mt-2 block text-xs leading-5 text-muted">{niche.description}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="mt-5">
+          <p className="text-xs font-black uppercase text-muted">Sous-recherches actives</p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {activeSearches.map((search) => {
+              const active = selectedSearches.length === 0 || selectedSearches.includes(search.id);
+              return (
+                <button
+                  key={search.id}
+                  type="button"
+                  onClick={() => toggleSearch(search.id)}
+                  className={cn(
+                    "h-9 rounded-md border px-3 text-xs font-bold transition",
+                    active ? "border-accent/40 bg-accent/10 text-accent" : "border-white/10 bg-white/[0.03] text-muted"
+                  )}
+                >
+                  {search.label}
+                </button>
+              );
+            })}
+          </div>
+          <p className="mt-2 text-xs text-muted">
+            Si aucun sous-filtre n'est choisi, le bot scanne toutes les sous-recherches des niches cochees.
+          </p>
+        </div>
+      </section>
+
       <section className="mt-6 rounded-lg border border-accent/20 bg-panel p-5 shadow-glow">
         <div className="flex flex-col gap-3 border-b border-white/10 pb-4 md:flex-row md:items-center md:justify-between">
           <div>
@@ -422,17 +541,7 @@ export function WeeklyOpportunities() {
           </div>
           <button
             type="button"
-            onClick={() => {
-              setLiveLoading(true);
-              fetch("/api/opportunities/live", { cache: "no-store" })
-                .then((response) => response.ok ? response.json() : null)
-                .then((data: { items?: LiveOpportunity[]; message?: string } | null) => {
-                  setLiveItems(data?.items || []);
-                  setLiveMessage(data?.message || "Scanner indisponible pour le moment.");
-                })
-                .catch(() => setLiveMessage("Scanner live bloque pour le moment."))
-                .finally(() => setLiveLoading(false));
-            }}
+            onClick={refreshLive}
             className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-white/15 bg-white/5 px-4 text-sm font-bold text-white hover:bg-white/10"
           >
             <Search size={15} />
@@ -559,6 +668,14 @@ function vintedSearchUrl(query: string, maxPrice: number) {
     order: "newest_first"
   });
   return `https://www.vinted.fr/catalog?${params.toString()}`;
+}
+
+function liveApiUrl(niches: string[], searches: string[]) {
+  const params = new URLSearchParams();
+  if (niches.length > 0) params.set("niches", niches.join(","));
+  if (searches.length > 0) params.set("searches", searches.join(","));
+  const query = params.toString();
+  return query ? `/api/opportunities/live?${query}` : "/api/opportunities/live";
 }
 
 function Row({ label, value, strong = false }: { label: string; value: string; strong?: boolean }) {
