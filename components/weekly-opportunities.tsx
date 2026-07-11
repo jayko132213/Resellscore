@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowUp, Bell, Bot, CheckCircle2, Crown, ExternalLink, Filter, Loader2, Lock, Search, ShieldCheck, Sparkles, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { normalizePlan } from "@/lib/plans";
@@ -169,6 +169,8 @@ export function WeeklyOpportunities() {
   const [draftFilter, setDraftFilter] = useState<SavedFilter>(defaultFilter);
   const [liveMessage, setLiveMessage] = useState("");
   const [liveLoading, setLiveLoading] = useState(false);
+  const [notificationsOn, setNotificationsOn] = useState(false);
+  const alertedLinksRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -215,8 +217,15 @@ export function WeeklyOpportunities() {
   useEffect(() => {
     const stored = localStorage.getItem("resellscore_seen_opportunities");
     if (stored) setSeenLinks(JSON.parse(stored) as string[]);
+    const alerted = localStorage.getItem("resellscore_alerted_opportunities");
+    if (alerted) alertedLinksRef.current = new Set(JSON.parse(alerted) as string[]);
+    setNotificationsOn(localStorage.getItem("resellscore_radar_notifications") === "1");
     const storedFilters = localStorage.getItem("resellscore_trend_filters");
     setSavedFilters(storedFilters ? JSON.parse(storedFilters) as SavedFilter[] : [defaultFilter]);
+
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/sw.js").catch(() => {});
+    }
   }, []);
 
   useEffect(() => {
@@ -291,6 +300,28 @@ export function WeeklyOpportunities() {
     };
   }, [filteredLiveItems]);
 
+  useEffect(() => {
+    if (!notificationsOn || filteredLiveItems.length === 0) return;
+    const freshItem = filteredLiveItems.find((item) => !alertedLinksRef.current.has(item.link));
+    if (!freshItem) return;
+
+    alertedLinksRef.current.add(freshItem.link);
+    localStorage.setItem("resellscore_alerted_opportunities", JSON.stringify([...alertedLinksRef.current].slice(-200)));
+    playAlertSound();
+
+    if ("Notification" in window && Notification.permission === "granted") {
+      const notification = new Notification("Nouvelle pepite ResellScore", {
+        body: `${freshItem.title} - ${freshItem.listingPrice} EUR - marge +${freshItem.margin} EUR`,
+        icon: "/resellscore-icon.svg",
+        tag: freshItem.link
+      });
+      notification.onclick = () => {
+        window.focus();
+        window.open(freshItem.link, "_blank", "noopener,noreferrer");
+      };
+    }
+  }, [filteredLiveItems, notificationsOn]);
+
   function markSeen(link: string) {
     setSeenLinks((current) => {
       if (current.includes(link)) return current;
@@ -325,6 +356,16 @@ export function WeeklyOpportunities() {
       })
       .catch(() => setLiveMessage("Scanner live bloque pour le moment."))
       .finally(() => setLiveLoading(false));
+  }
+
+  async function enableNotifications() {
+    localStorage.setItem("resellscore_radar_notifications", "1");
+    setNotificationsOn(true);
+    playAlertSound();
+
+    if ("Notification" in window && Notification.permission === "default") {
+      await Notification.requestPermission();
+    }
   }
 
   function toggleDraftValue(field: keyof Pick<SavedFilter, "categories" | "brands" | "sizes" | "colors" | "conditions" | "zone" | "materials">, value: string) {
@@ -458,6 +499,17 @@ export function WeeklyOpportunities() {
               {liveLoading ? <Loader2 size={16} className="animate-spin" /> : <Search size={16} />}
               Scanner
             </button>
+            <button
+              type="button"
+              onClick={enableNotifications}
+              className={cn(
+                "inline-flex h-11 items-center justify-center gap-2 rounded-md border px-4 text-sm font-black transition",
+                notificationsOn ? "border-accent/35 bg-accent/10 text-accent" : "border-white/15 bg-white/5 text-white hover:bg-white/10"
+              )}
+            >
+              <Bell size={16} />
+              {notificationsOn ? "Alertes activees" : "Activer alertes"}
+            </button>
           </div>
         </div>
 
@@ -551,6 +603,15 @@ export function WeeklyOpportunities() {
             Bot actif
           </span>
         </div>
+        {notificationsOn ? (
+          <div className="mt-4 rounded-md border border-accent/20 bg-accent/[0.06] p-3 text-xs font-semibold leading-5 text-accent">
+            Alertes activees: si une nouvelle annonce apparait pendant que cette page tourne, ResellScore joue un son et envoie une notification.
+          </div>
+        ) : (
+          <div className="mt-4 rounded-md border border-white/10 bg-white/[0.03] p-3 text-xs font-semibold leading-5 text-muted">
+            Active les alertes pour entendre un son et recevoir une notification quand le bot spot une annonce.
+          </div>
+        )}
 
         {filteredLiveItems.length > 0 ? (
           <div className="mt-4 grid gap-3">
@@ -744,6 +805,28 @@ function liveApiUrl(niches: string[], searches: string[]) {
   if (searches.length === 0 && niches.length > 0) params.set("niches", niches.join(","));
   const query = params.toString();
   return query ? `/api/opportunities/live?${query}` : "/api/opportunities/live";
+}
+
+function playAlertSound() {
+  try {
+    const AudioContextClass = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!AudioContextClass) return;
+    const context = new AudioContextClass();
+    const gain = context.createGain();
+    gain.gain.setValueAtTime(0.0001, context.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.2, context.currentTime + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, context.currentTime + 0.35);
+    gain.connect(context.destination);
+
+    [880, 1175].forEach((frequency, index) => {
+      const oscillator = context.createOscillator();
+      oscillator.type = "sine";
+      oscillator.frequency.setValueAtTime(frequency, context.currentTime + index * 0.12);
+      oscillator.connect(gain);
+      oscillator.start(context.currentTime + index * 0.12);
+      oscillator.stop(context.currentTime + index * 0.12 + 0.18);
+    });
+  } catch {}
 }
 
 function Row({ label, value, strong = false }: { label: string; value: string; strong?: boolean }) {

@@ -8,6 +8,7 @@ import { LoginSuccessToast } from "@/components/login-success-toast";
 export const metadata: Metadata = {
   title: "ResellScore",
   description: "Analyse une annonce Vinted en quelques secondes et decouvre si elle vaut le coup.",
+  manifest: "/manifest.webmanifest",
   icons: {
     icon: "/resellscore-icon.svg",
     shortcut: "/resellscore-icon.svg",

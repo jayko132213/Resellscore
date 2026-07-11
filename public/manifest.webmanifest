@@ -1,0 +1,18 @@
+{
+  "name": "ResellScore",
+  "short_name": "ResellScore",
+  "description": "Radar de revente et analyse d'annonces Vinted.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#050807",
+  "theme_color": "#43e878",
+  "icons": [
+    {
+      "src": "/resellscore-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
