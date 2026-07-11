@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { ArrowUp, Bot, CheckCircle2, Crown, ExternalLink, Loader2, Lock, Search, ShieldCheck, Sparkles } from "lucide-react";
+import { ArrowUp, Bell, Bot, CheckCircle2, Crown, ExternalLink, Filter, Loader2, Lock, Search, ShieldCheck, Sparkles, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { normalizePlan } from "@/lib/plans";
 
@@ -30,6 +30,7 @@ type LiveOpportunity = {
   likeVelocity: string;
   popularity: number;
   link: string;
+  imageUrl: string;
   signal: string;
   reason: string;
   risk: string;
@@ -65,6 +66,24 @@ type NichePreset = {
   searches: { id: string; label: string }[];
 };
 
+type SavedFilter = {
+  id: string;
+  name: string;
+  categories: string[];
+  brands: string[];
+  sizes: string[];
+  colors: string[];
+  conditions: string[];
+  zone: string[];
+  materials: string[];
+  keywords: string;
+  priceMin: string;
+  priceMax: string;
+  hideReposts: boolean;
+  notifications: boolean;
+  autocop: boolean;
+};
+
 const sortFilters: { key: SortKey; label: string }[] = [
   { key: "margin", label: "Marge forte" },
   { key: "season", label: "En hausse maintenant" },
@@ -77,6 +96,34 @@ const budgetFilters: { key: BudgetKey; label: string; min: number; max: number }
   { key: "middle", label: "30-120 EUR", min: 30, max: 120 },
   { key: "high", label: "120 EUR+", min: 120, max: Number.POSITIVE_INFINITY }
 ];
+
+const filterOptions = {
+  categories: ["Sweats et pulls", "Sweats a capuche", "T-shirts", "Chemises", "Jupes", "Robes", "Vestes", "Sneakers", "Maillots", "Accessoires"],
+  brands: ["Nike", "Ralph Lauren", "Polo Ralph Lauren", "Adidas", "Carhartt", "Levi's", "Patagonia", "The North Face", "Stone Island", "Arc'teryx"],
+  sizes: ["XS", "S", "M", "L", "XL", "XXL", "36", "38", "40", "42", "W30", "W32", "W34"],
+  colors: ["Noir", "Blanc", "Gris", "Bleu", "Marine", "Vert", "Rouge", "Rose", "Creme", "Beige"],
+  conditions: ["Neuf avec etiquette", "Neuf sans etiquette", "Tres bon etat", "Bon etat"],
+  zone: ["Europe occidentale", "France", "Belgique", "Italie", "Espagne", "Allemagne"],
+  materials: ["Coton", "Laine", "Cuir", "Denim", "Nylon", "Polyester", "Soie", "Cachemire"]
+};
+
+const defaultFilter: SavedFilter = {
+  id: "default",
+  name: "Vetement oversize Nike",
+  categories: ["Sweats et pulls", "Sweats a capuche"],
+  brands: ["Nike"],
+  sizes: ["S", "M", "L", "XL"],
+  colors: [],
+  conditions: ["Tres bon etat", "Bon etat"],
+  zone: ["Europe occidentale"],
+  materials: [],
+  keywords: "oversize logo brode vintage",
+  priceMin: "",
+  priceMax: "35",
+  hideReposts: true,
+  notifications: false,
+  autocop: false
+};
 
 const nichePresets: NichePreset[] = [
   { id: "nike", label: "Nike", description: "Running, sport, ACG, shorts propres.", searches: [{ id: "nike-running", label: "Running" }, { id: "nike-sport", label: "Sport" }, { id: "nike-acg", label: "ACG" }, { id: "Nike short vert", label: "Shorts" }] },
@@ -256,6 +303,9 @@ export function WeeklyOpportunities() {
   const [seenLinks, setSeenLinks] = useState<string[]>([]);
   const [selectedNiches, setSelectedNiches] = useState<string[]>(["nike", "ralph", "maillots"]);
   const [selectedSearches, setSelectedSearches] = useState<string[]>([]);
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [savedFilters, setSavedFilters] = useState<SavedFilter[]>([]);
+  const [draftFilter, setDraftFilter] = useState<SavedFilter>(defaultFilter);
   const [liveMessage, setLiveMessage] = useState("");
   const [liveLoading, setLiveLoading] = useState(false);
 
@@ -304,6 +354,8 @@ export function WeeklyOpportunities() {
   useEffect(() => {
     const stored = localStorage.getItem("resellscore_seen_opportunities");
     if (stored) setSeenLinks(JSON.parse(stored) as string[]);
+    const storedFilters = localStorage.getItem("resellscore_trend_filters");
+    setSavedFilters(storedFilters ? JSON.parse(storedFilters) as SavedFilter[] : [defaultFilter]);
   }, []);
 
   useEffect(() => {
@@ -381,6 +433,24 @@ export function WeeklyOpportunities() {
       })
       .catch(() => setLiveMessage("Scanner live bloque pour le moment."))
       .finally(() => setLiveLoading(false));
+  }
+
+  function toggleDraftValue(field: keyof Pick<SavedFilter, "categories" | "brands" | "sizes" | "colors" | "conditions" | "zone" | "materials">, value: string) {
+    setDraftFilter((current) => {
+      const list = current[field];
+      return {
+        ...current,
+        [field]: list.includes(value) ? list.filter((item) => item !== value) : [...list, value]
+      };
+    });
+  }
+
+  function saveFilter() {
+    const nextFilter = { ...draftFilter, id: draftFilter.id === "default" ? `filter-${Date.now()}` : draftFilter.id };
+    const next = [nextFilter, ...savedFilters.filter((item) => item.id !== nextFilter.id)].slice(0, 8);
+    setSavedFilters(next);
+    localStorage.setItem("resellscore_trend_filters", JSON.stringify(next));
+    setFiltersOpen(false);
   }
 
   if (!planLoaded) {
@@ -490,6 +560,36 @@ export function WeeklyOpportunities() {
           </button>
         </div>
 
+        <div className="mt-5 flex flex-col gap-3 rounded-lg border border-white/10 bg-black/20 p-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <p className="text-xs font-black uppercase text-muted">Filtres sauvegardes</p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {savedFilters.map((filter) => (
+                <button
+                  key={filter.id}
+                  type="button"
+                  onClick={() => setDraftFilter(filter)}
+                  className="inline-flex items-center gap-2 rounded-md border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-bold text-white hover:border-accent/40"
+                >
+                  <Filter size={13} className="text-accent" />
+                  {filter.name}
+                </button>
+              ))}
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setDraftFilter({ ...defaultFilter, id: `filter-${Date.now()}` });
+              setFiltersOpen(true);
+            }}
+            className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-accent/35 bg-accent/10 px-4 text-sm font-black text-accent hover:bg-accent/15"
+          >
+            <Filter size={15} />
+            Creer un filtre
+          </button>
+        </div>
+
         <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           {nichePresets.map((niche) => {
             const active = selectedNiches.includes(niche.id);
@@ -564,25 +664,32 @@ export function WeeklyOpportunities() {
         </div>
 
         {liveItems.length > 0 ? (
-          <div className="mt-4 grid gap-3 lg:grid-cols-2">
+          <div className="mt-4 grid gap-3">
             {liveItems.slice(0, 6).map((item) => {
               const seen = seenLinks.includes(item.link);
               return (
-                <a
+                <article
                   key={item.id}
-                  href={item.link}
-                  target="_blank"
-                  rel="noreferrer"
-                  onClick={() => markSeen(item.link)}
                   className={cn(
-                    "relative rounded-lg border bg-white/[0.03] p-4 transition hover:border-accent/60 hover:bg-white/[0.05]",
+                    "relative grid overflow-hidden rounded-lg border bg-white/[0.03] transition hover:border-accent/60 hover:bg-white/[0.05] sm:grid-cols-[180px_1fr]",
                     seen ? "border-accent/35" : "border-white/10"
                   )}
                 >
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
+                  <div className="aspect-square bg-black/30 sm:aspect-auto">
+                    {item.imageUrl ? (
+                      <img src={item.imageUrl} alt="" className="h-full w-full object-cover" />
+                    ) : (
+                      <div className="grid h-full place-items-center bg-gradient-to-br from-accent/15 to-white/5 p-4 text-center text-xs font-black uppercase text-accent">
+                        {item.category}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="p-4">
+                    <div className="flex items-start justify-between gap-3">
                       <div className="flex flex-wrap items-center gap-2">
                         <p className="text-xs font-black uppercase text-accent">{item.category}</p>
+                        <span className="text-xs font-bold text-muted">Score {item.score}/10</span>
                         {seen ? (
                           <span className="inline-flex items-center gap-1 rounded-full border border-accent/30 bg-accent/15 px-2 py-0.5 text-[10px] font-black uppercase text-accent">
                             <CheckCircle2 size={11} />
@@ -590,29 +697,56 @@ export function WeeklyOpportunities() {
                           </span>
                         ) : null}
                       </div>
-                      <h3 className="mt-1 line-clamp-2 font-bold text-white">{item.title}</h3>
+                      <span className={cn("rounded-full px-2.5 py-1 text-[10px] font-black uppercase", item.x2Rule ? "bg-accent text-ink" : "bg-amber-400/15 text-amber-100")}>
+                        {item.x2Rule ? "x2 ok" : "limite"}
+                      </span>
                     </div>
-                    <span className="shrink-0 rounded-full bg-accent px-3 py-1 text-xs font-black text-ink">{item.score}/10</span>
+                    <h3 className="mt-2 line-clamp-2 text-lg font-black text-white">{item.title}</h3>
+                    <p className="mt-1 text-xs font-semibold text-muted">{item.condition} - {item.spottedAt}</p>
+
+                    <div className="mt-3 flex flex-wrap items-end gap-3">
+                      <div>
+                        <p className="text-[10px] uppercase text-muted">Prix annonce</p>
+                        <p className="text-2xl font-black text-white">{item.listingPrice || item.buy} EUR</p>
+                      </div>
+                      <div className="text-xs font-bold text-muted">
+                        Revente prudente <span className="text-accent">{item.safeResale} EUR</span> - Achat max <span className="text-accent">{item.maxSafeBuy} EUR</span>
+                      </div>
+                    </div>
+
+                    <div className="mt-3 grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
+                      <Mini label="Marge" value={`+${item.margin} EUR`} highlight />
+                      <Mini label="Likes" value={item.likes === null ? "non lus" : String(item.likes)} />
+                      <Mini label="Demande" value={`${item.demand}%`} />
+                      <Mini label="Reserve" value={`${item.safetyReserve} EUR`} />
+                    </div>
+
+                    <p className="mt-3 text-xs leading-5 text-slate-300">{item.signal} - {item.likeVelocity}</p>
+                    <p className="mt-1 text-xs leading-5 text-amber-100">{item.risk}</p>
+
+                    <div className="mt-4 flex gap-2">
+                      <a
+                        href={item.link}
+                        target="_blank"
+                        rel="noreferrer"
+                        onClick={() => markSeen(item.link)}
+                        className="inline-flex h-10 flex-1 items-center justify-center rounded-md bg-white/10 px-4 text-sm font-black text-white hover:bg-white/15"
+                      >
+                        Details
+                      </a>
+                      <a
+                        href={item.link}
+                        target="_blank"
+                        rel="noreferrer"
+                        onClick={() => markSeen(item.link)}
+                        className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-md bg-accent px-4 text-sm font-black text-ink hover:bg-accent/90"
+                      >
+                        <ExternalLink size={15} />
+                        Acheter
+                      </a>
+                    </div>
                   </div>
-                  <div className="mt-3 grid grid-cols-2 gap-2 text-xs sm:grid-cols-3">
-                    <Mini label="Prix annonce" value={`${item.listingPrice || item.buy} EUR`} highlight />
-                    <Mini label="Revente visee" value={`${item.resale} EUR`} />
-                    <Mini label="Revente prudente" value={`${item.safeResale} EUR`} />
-                    <Mini label="Achat max safe" value={`${item.maxSafeBuy} EUR`} highlight />
-                    <Mini label="Marge brute" value={`+${item.margin} EUR`} highlight />
-                    <Mini label="Regle x2" value={item.x2Rule ? "OK" : "Non"} />
-                    <Mini label="Likes" value={item.likes === null ? "non lus" : String(item.likes)} />
-                    <Mini label="Demande" value={`${item.demand}%`} />
-                  </div>
-                  <p className="mt-3 text-sm leading-6 text-slate-300">{item.signal} - {item.reason}</p>
-                  <p className="mt-2 text-xs leading-5 text-slate-300">Signal demande : {item.likeVelocity}</p>
-                  <p className="mt-2 text-xs leading-5 text-amber-100">Risque : {item.risk}</p>
-                  <p className="mt-2 text-xs leading-5 text-accent">{item.sellerSignal}</p>
-                  <p className="mt-3 inline-flex items-center gap-2 text-xs font-bold text-accent">
-                    Ouvrir l'annonce Vinted
-                    <ExternalLink size={13} />
-                  </p>
-                </a>
+                </article>
               );
             })}
           </div>
@@ -675,6 +809,83 @@ export function WeeklyOpportunities() {
           </article>
         ))}
       </div>
+
+      {filtersOpen ? (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-4">
+          <div className="max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-lg border border-white/10 bg-[#111] p-5 shadow-2xl">
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="text-xl font-black">Creer un filtre</h2>
+              <button type="button" onClick={() => setFiltersOpen(false)} className="grid h-9 w-9 place-items-center rounded-md bg-white/10 text-white">
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="mt-5 grid gap-4">
+              <label className="grid gap-2 text-sm font-bold">
+                Nom du filtre
+                <input
+                  value={draftFilter.name}
+                  onChange={(event) => setDraftFilter((current) => ({ ...current, name: event.target.value }))}
+                  className="h-11 rounded-md border border-white/10 bg-white/[0.06] px-3 text-sm font-semibold outline-none focus:border-accent"
+                  placeholder="Vetement oversize Nike"
+                />
+              </label>
+
+              <FilterGroup title="Categories" values={filterOptions.categories} selected={draftFilter.categories} onToggle={(value) => toggleDraftValue("categories", value)} />
+              <FilterGroup title="Marques" values={filterOptions.brands} selected={draftFilter.brands} onToggle={(value) => toggleDraftValue("brands", value)} />
+              <FilterGroup title="Tailles" values={filterOptions.sizes} selected={draftFilter.sizes} onToggle={(value) => toggleDraftValue("sizes", value)} />
+              <FilterGroup title="Couleurs" values={filterOptions.colors} selected={draftFilter.colors} onToggle={(value) => toggleDraftValue("colors", value)} />
+              <FilterGroup title="Etats" values={filterOptions.conditions} selected={draftFilter.conditions} onToggle={(value) => toggleDraftValue("conditions", value)} />
+              <FilterGroup title="Zone geographique" values={filterOptions.zone} selected={draftFilter.zone} onToggle={(value) => toggleDraftValue("zone", value)} />
+              <FilterGroup title="Matieres" values={filterOptions.materials} selected={draftFilter.materials} onToggle={(value) => toggleDraftValue("materials", value)} />
+
+              <label className="grid gap-2 text-sm font-bold">
+                Mots cles
+                <input
+                  value={draftFilter.keywords}
+                  onChange={(event) => setDraftFilter((current) => ({ ...current, keywords: event.target.value }))}
+                  className="h-11 rounded-md border border-white/10 bg-white/[0.06] px-3 text-sm font-semibold outline-none focus:border-accent"
+                  placeholder="logo brode, oversize, vintage..."
+                />
+              </label>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label className="grid gap-2 text-sm font-bold">
+                  Prix minimum
+                  <input
+                    value={draftFilter.priceMin}
+                    onChange={(event) => setDraftFilter((current) => ({ ...current, priceMin: event.target.value.replace(/[^\d]/g, "") }))}
+                    className="h-11 rounded-md border border-white/10 bg-white/[0.06] px-3 text-sm font-semibold outline-none focus:border-accent"
+                    placeholder="Minimum"
+                  />
+                </label>
+                <label className="grid gap-2 text-sm font-bold">
+                  Prix maximum
+                  <input
+                    value={draftFilter.priceMax}
+                    onChange={(event) => setDraftFilter((current) => ({ ...current, priceMax: event.target.value.replace(/[^\d]/g, "") }))}
+                    className="h-11 rounded-md border border-white/10 bg-white/[0.06] px-3 text-sm font-semibold outline-none focus:border-accent"
+                    placeholder="Maximum"
+                  />
+                </label>
+              </div>
+
+              <ToggleLine label="Masquer les repost" checked={draftFilter.hideReposts} onChange={() => setDraftFilter((current) => ({ ...current, hideReposts: !current.hideReposts }))} />
+              <ToggleLine label="Reception des notifications" checked={draftFilter.notifications} onChange={() => setDraftFilter((current) => ({ ...current, notifications: !current.notifications }))} />
+              <ToggleLine label="Autocop cet article" checked={draftFilter.autocop} onChange={() => setDraftFilter((current) => ({ ...current, autocop: !current.autocop }))} />
+            </div>
+
+            <div className="mt-6 flex gap-3">
+              <button type="button" onClick={saveFilter} className="h-11 rounded-md bg-accent px-6 text-sm font-black text-ink">
+                Ajouter
+              </button>
+              <button type="button" onClick={() => setFiltersOpen(false)} className="h-11 rounded-md px-4 text-sm font-black text-white">
+                Annuler
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </section>
   );
 }
@@ -720,5 +931,42 @@ function MethodCard({ title, text }: { title: string; text: string }) {
       <p className="text-xs font-black uppercase text-accent">{title}</p>
       <p className="mt-2 text-xs leading-5 text-muted">{text}</p>
     </div>
+  );
+}
+
+function FilterGroup({ title, values, selected, onToggle }: { title: string; values: string[]; selected: string[]; onToggle: (value: string) => void }) {
+  return (
+    <div>
+      <p className="text-sm font-bold">{title}</p>
+      <div className="mt-2 flex flex-wrap gap-2 rounded-md border border-white/10 bg-white/[0.04] p-2">
+        {values.map((value) => {
+          const active = selected.includes(value);
+          return (
+            <button
+              key={value}
+              type="button"
+              onClick={() => onToggle(value)}
+              className={cn(
+                "rounded-md border px-2.5 py-1.5 text-xs font-bold transition",
+                active ? "border-accent/50 bg-accent/15 text-accent" : "border-white/10 bg-black/10 text-muted"
+              )}
+            >
+              {active ? "✓ " : ""}{value}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function ToggleLine({ label, checked, onChange }: { label: string; checked: boolean; onChange: () => void }) {
+  return (
+    <button type="button" onClick={onChange} className="flex items-center justify-between rounded-md px-1 py-1 text-left text-sm font-semibold text-muted">
+      <span>{label}</span>
+      <span className={cn("relative h-6 w-11 rounded-full transition", checked ? "bg-accent" : "bg-white/20")}>
+        <span className={cn("absolute top-1 h-4 w-4 rounded-full bg-white transition", checked ? "left-6" : "left-1")} />
+      </span>
+    </button>
   );
 }

@@ -20,6 +20,7 @@ type LiveOpportunity = {
   likeVelocity: string;
   popularity: number;
   link: string;
+  imageUrl: string;
   signal: string;
   reason: string;
   risk: string;
@@ -262,6 +263,10 @@ function parseDetailTitle(html: string, fallback: string) {
     .trim() || fallback;
 }
 
+function parseDetailImage(html: string) {
+  return extractMetaContent(html, "og:image") || extractMetaContent(html, "twitter:image");
+}
+
 function parseFavoriteCount(html: string) {
   const patterns = [
     /"favourite_count"\s*:\s*(\d+)/i,
@@ -315,9 +320,10 @@ async function fetchListingDetail(item: { link: string; title: string }) {
     const html = await response.text();
     const listingPrice = parseDetailPrice(html);
     const title = parseDetailTitle(html, item.title);
+    const imageUrl = parseDetailImage(html);
     const likes = parseFavoriteCount(html);
     if (!listingPrice || !looksReliable(title)) return null;
-    return { ...item, title, listingPrice, likes };
+    return { ...item, title, listingPrice, likes, imageUrl };
   } catch {
     clearTimeout(timeout);
     return null;
@@ -352,7 +358,7 @@ async function fetchSearch(scan: Scan) {
     const checkedItems = await Promise.all(extractLinks(html).map(fetchListingDetail));
 
     return checkedItems
-      .filter((item): item is { link: string; title: string; listingPrice: number; likes: number | null } => Boolean(item))
+      .filter((item): item is { link: string; title: string; listingPrice: number; likes: number | null; imageUrl: string } => Boolean(item))
       .filter((item) => {
         const price = item.listingPrice;
         const safe = safeBuyPrice(scan.resale);
@@ -394,6 +400,7 @@ async function fetchSearch(scan: Scan) {
           likeVelocity: likeVelocityLabel(item.likes, scan.demand),
           popularity: Math.min(98, scan.demand + 4 - index),
           link: item.link,
+          imageUrl: item.imageUrl,
           signal: `Prix lu + style vendable ${sellable.toFixed(1)}/10`,
           reason: `Prix annonce: ${listingPrice} EUR. Revente visee: ${scan.resale} EUR. Revente prudente apres marge de securite: ${safe.safeResale} EUR. Achat max conseille: ${safe.maxSafeBuy} EUR.`,
           risk: scan.risk,
