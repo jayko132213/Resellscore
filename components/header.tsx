@@ -1,28 +1,30 @@
 import Link from "next/link";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { hasRealSupabaseConfig } from "@/lib/env";
-import { AuthNav } from "./auth-nav";
+import { Candy, LayoutDashboard, Sparkles } from "lucide-react";
+import { CartCount } from "@/components/squishy-cart";
 
 export async function Header() {
-  let signedIn = false;
-
-  if (hasRealSupabaseConfig()) {
-    const supabase = await createSupabaseServerClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    signedIn = Boolean(user);
-  }
-
   return (
-    <header className="sticky top-0 z-30 border-b border-white/10 bg-ink/80 backdrop-blur">
-      <div className="shell flex h-14 min-w-0 items-center justify-between gap-2 sm:h-16 sm:gap-3">
-        <Link href="/" className="flex min-w-0 shrink items-center gap-2 font-semibold sm:gap-2.5" aria-label="Accueil ResellScore">
-          <img src="/resellscore-icon.svg" alt="" className="h-8 w-8 shrink-0 rounded-lg sm:h-9 sm:w-9" />
-          <span className="truncate text-sm tracking-normal sm:text-base">
-            Resell<span className="text-accent">Score</span>
+    <header className="sticky top-0 z-30 border-b border-[#ffd6ea] bg-white/82 text-[#281c3d] shadow-[0_12px_40px_rgba(255,111,177,0.12)] backdrop-blur">
+      <div className="shell flex h-16 items-center justify-between gap-3">
+        <Link href="/" className="flex min-w-0 items-center gap-3" aria-label="Accueil Squishy Need You">
+          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-[#ff6fb1] text-white shadow-[0_14px_28px_rgba(255,111,177,0.28)]">
+            <Candy size={25} />
+          </span>
+          <span className="truncate text-base font-black sm:text-xl">
+            Squishy <span className="text-[#ff6fb1]">Need</span> You
           </span>
         </Link>
-        <nav className="shrink-0 text-sm">
-          <AuthNav serverSignedIn={signedIn} />
+
+        <nav className="flex min-w-0 items-center gap-2">
+          <Link href="/boutique" className="hidden h-10 items-center gap-2 rounded-full bg-[#fff4bf] px-4 text-sm font-black text-[#281c3d] sm:inline-flex">
+            <Sparkles size={16} />
+            Boutique
+          </Link>
+          <Link href="/admin-shop" className="hidden h-10 items-center gap-2 rounded-full border border-[#ffd6ea] bg-white px-4 text-sm font-black text-[#281c3d] md:inline-flex">
+            <LayoutDashboard size={16} />
+            Admin
+          </Link>
+          <CartCount />
         </nav>
       </div>
     </header>

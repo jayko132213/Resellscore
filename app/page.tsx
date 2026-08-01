@@ -1,101 +1,122 @@
-import { ArrowRight, Calculator, ShieldCheck, Sparkles, TrendingUp } from "lucide-react";
-import { ButtonLink } from "@/components/ui/button";
-import { PricingTable } from "@/components/pricing-table";
-import { ReviewsSection } from "@/components/reviews-section";
-import { EliteFindsSection } from "@/components/elite-finds-section";
+import Link from "next/link";
+import { Gift, Heart, PackageCheck, Sparkles, Truck } from "lucide-react";
+import { AddToCartButton } from "@/components/squishy-cart";
+import { margin, marginRate, squishyProducts } from "@/lib/squishy-products";
 
 export default function HomePage() {
-  const steps = [
-    { Icon: Sparkles, title: "Envoie l'annonce", text: "Lien Vinted, photo/capture ou description manuelle." },
-    { Icon: TrendingUp, title: "Compare le marché", text: "ResellScore estime demande, marge, prix de revente et risque." },
-    { Icon: ShieldCheck, title: "Décide vite", text: "Acheter, négocier ou éviter avec une recommandation claire." }
-  ];
+  const featured = squishyProducts.slice(0, 4);
 
   return (
-    <main>
-      <section className="border-b border-white/10 bg-[radial-gradient(circle_at_top_left,rgba(74,222,128,0.16),transparent_34%),radial-gradient(circle_at_80%_10%,rgba(167,139,250,0.12),transparent_28%),#08090d]">
-        <div className="shell grid min-h-[calc(100vh-64px)] items-center gap-10 py-12 lg:grid-cols-[1.05fr_0.95fr]">
+    <main className="bg-[#fff8fb] text-[#281c3d]">
+      <section className="relative overflow-hidden border-b border-[#ffd6ea] bg-[radial-gradient(circle_at_15%_12%,#ffb3d9_0,transparent_25%),radial-gradient(circle_at_86%_18%,#8df7e4_0,transparent_24%),radial-gradient(circle_at_55%_82%,#fff59d_0,transparent_28%),#fff8fb]">
+        <div className="shell grid min-h-[calc(100vh-64px)] items-center gap-10 py-12 lg:grid-cols-[1fr_0.95fr]">
           <div>
-            <p className="mb-4 inline-flex rounded-full border border-white/10 bg-white/5 px-3 py-1 text-sm text-muted">SaaS d'analyse pour revendeurs Vinted et vintage</p>
-            <h1 className="max-w-3xl text-5xl font-bold leading-tight md:text-7xl">ResellScore</h1>
-            <p className="mt-5 max-w-2xl text-xl leading-8 text-slate-300">Analyse une annonce Vinted en quelques secondes et découvre si elle vaut le coup.</p>
+            <p className="inline-flex rounded-full border border-[#ffb3d9] bg-white/70 px-4 py-2 text-sm font-black text-[#ff4fa0] shadow-[0_12px_35px_rgba(255,111,177,0.16)]">
+              Boutique kawaii anti-stress
+            </p>
+            <h1 className="mt-5 max-w-3xl text-5xl font-black leading-[0.95] tracking-normal md:text-7xl">
+              Squishy <span className="text-[#ff6fb1]">Need</span> You
+            </h1>
+            <p className="mt-6 max-w-2xl text-lg leading-8 text-[#6c5b7c] md:text-xl">
+              Des squishies doux, colorés et trop satisfaisants pour les cadeaux, les bureaux, les trousses et les pauses anti-stress.
+            </p>
             <div className="mt-8 flex flex-wrap gap-3">
-              <ButtonLink href="/analyze">Analyser une annonce</ButtonLink>
-              <ButtonLink href="/pricing" variant="secondary">Voir les tarifs</ButtonLink>
+              <Link href="/boutique" className="inline-flex h-12 items-center justify-center rounded-full bg-[#ff6fb1] px-6 text-sm font-black text-white shadow-[0_18px_40px_rgba(255,111,177,0.28)]">
+                Voir les squishies
+              </Link>
+              <Link href="/admin-shop" className="inline-flex h-12 items-center justify-center rounded-full border border-[#2de2c5] bg-white/70 px-6 text-sm font-black text-[#281c3d]">
+                Panel boutique
+              </Link>
             </div>
           </div>
 
-          <div className="rounded-lg border border-white/10 bg-panel p-5 shadow-glow">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="flex items-center gap-2 text-sm text-muted"><Calculator size={16} className="text-accent" /> Simulateur de décision</p>
-                <h2 className="mt-1 text-2xl font-semibold">Acheter, négocier ou éviter</h2>
-              </div>
-              <span className="rounded-full bg-accent px-3 py-1 text-sm font-bold text-ink">IA</span>
-            </div>
-            <div className="mt-6 grid gap-3">
-              {[
-                ["Score global", "8.6 / 10"],
-                ["Prix max conseillé", "34 €"],
-                ["Revente probable", "72 €"],
-                ["Décision", "Négocier"]
-              ].map(([label, value]) => (
-                <div key={label} className="flex justify-between rounded-md bg-white/[0.04] p-3">
-                  <span className="text-muted">{label}</span>
-                  <strong>{value}</strong>
+          <div className="grid gap-4 sm:grid-cols-2">
+            {featured.map((product) => (
+              <article key={product.slug} className="rounded-[30px] border border-white bg-white/78 p-4 shadow-[0_24px_70px_rgba(255,111,177,0.18)] backdrop-blur">
+                <img src={product.image} alt="" className="aspect-square w-full rounded-[24px] object-cover" />
+                <p className="mt-3 text-xs font-black uppercase text-[#ff6fb1]">{product.category}</p>
+                <h2 className="mt-1 text-lg font-black">{product.name}</h2>
+                <div className="mt-3 flex items-end justify-between gap-3">
+                  <div>
+                    <p className="text-xs text-[#6c5b7c] line-through">{product.compareAt.toFixed(2)} EUR</p>
+                    <p className="text-2xl font-black">{product.price.toFixed(2)} EUR</p>
+                  </div>
+                  <AddToCartButton slug={product.slug} />
                 </div>
-              ))}
-            </div>
-            <p className="mt-5 text-sm text-muted">Une interface claire pour transformer une annonce en décision rapide, sans promettre de résultat garanti.</p>
+              </article>
+            ))}
           </div>
         </div>
       </section>
 
-      <section className="shell py-20">
-        <h2 className="text-3xl font-bold">Comment ça marche</h2>
-        <div className="mt-8 grid gap-4 md:grid-cols-3">
-          {steps.map(({ Icon, title, text }) => (
-            <article key={title} className="rounded-lg border border-white/10 bg-panel p-5">
-              <Icon className="text-accent" />
-              <h3 className="mt-4 text-lg font-semibold">{title}</h3>
-              <p className="mt-2 text-sm leading-6 text-muted">{text}</p>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <EliteFindsSection />
-
-      <section className="border-y border-white/10 bg-white/[0.03] py-20">
-        <div className="shell">
-          <div className="flex items-center justify-between gap-6">
-            <h2 className="text-3xl font-bold">Tarifs</h2>
-            <ArrowRight className="hidden text-accent md:block" />
-          </div>
-          <div className="mt-8">
-            <PricingTable />
-          </div>
-        </div>
-      </section>
-
-      <section className="shell py-20">
-        <h2 className="text-3xl font-bold">FAQ</h2>
-        <div className="mt-8 grid gap-4 md:grid-cols-2">
+      <section className="shell py-16">
+        <div className="grid gap-4 md:grid-cols-4">
           {[
-            ["ResellScore scrape Vinted ?", "Non. L'utilisateur peut coller un lien à titre informatif, mais l'application n'effectue pas de scraping automatique."],
-            ["Les résultats sont garantis ?", "Non. Les scores et marges sont des estimations destinées à aider la décision."],
-            ["Puis-je commencer gratuitement ?", "Oui. Le plan gratuit inclut 3 analyses au total."],
-            ["Les clés IA sont-elles exposées ?", "Non. Les appels IA passent par une route serveur sécurisée."]
-          ].map(([q, a]) => (
-            <article key={q} className="rounded-lg border border-white/10 bg-panel p-5">
-              <h3 className="font-semibold">{q}</h3>
-              <p className="mt-2 text-sm leading-6 text-muted">{a}</p>
+            { Icon: Sparkles, title: "Visuels cadeau", text: "Produits choisis pour etre compris en une seconde." },
+            { Icon: Heart, title: "Achat impulsif", text: "Prix ronds, couleurs fortes, fiches courtes et rassurantes." },
+            { Icon: Truck, title: "Fournisseur CJ", text: "API catalogue et commandes prete a brancher." },
+            { Icon: PackageCheck, title: "Marge suivie", text: "Prix d'achat, prix public et marge visibles en admin." }
+          ].map(({ Icon, title, text }) => (
+            <article key={title} className="rounded-[24px] border border-[#ffd6ea] bg-white p-5 shadow-[0_18px_55px_rgba(45,226,197,0.1)]">
+              <Icon className="text-[#ff6fb1]" />
+              <h2 className="mt-4 font-black">{title}</h2>
+              <p className="mt-2 text-sm leading-6 text-[#6c5b7c]">{text}</p>
             </article>
           ))}
         </div>
       </section>
 
-      <ReviewsSection />
+      <section className="shell pb-20">
+        <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="text-sm font-black uppercase tracking-wide text-[#ff6fb1]">Catalogue pret</p>
+            <h2 className="mt-1 text-3xl font-black">Produits a lancer maintenant</h2>
+          </div>
+          <Link href="/boutique" className="text-sm font-black text-[#0fb8a1]">Tout voir</Link>
+        </div>
+        <div className="grid gap-4 md:grid-cols-3">
+          {squishyProducts.map((product) => (
+            <article key={product.slug} className="rounded-[28px] border border-[#ffd6ea] bg-white p-4 shadow-[0_24px_70px_rgba(255,111,177,0.12)]">
+              <Link href={`/produit/${product.slug}`}>
+                <img src={product.image} alt="" className="aspect-square w-full rounded-[24px] object-cover" />
+              </Link>
+              <div className="mt-4 flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-xs font-black uppercase text-[#ff6fb1]">{product.mood}</p>
+                  <h3 className="mt-1 text-xl font-black">{product.name}</h3>
+                </div>
+                <span className="rounded-full bg-[#d6fff6] px-3 py-1 text-xs font-black text-[#138878]">
+                  {marginRate(product)}% marge
+                </span>
+              </div>
+              <p className="mt-2 text-sm leading-6 text-[#6c5b7c]">{product.tagline}</p>
+              <div className="mt-4 flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs text-[#6c5b7c]">Prix public</p>
+                  <p className="text-2xl font-black">{product.price.toFixed(2)} EUR</p>
+                </div>
+                <AddToCartButton slug={product.slug} />
+              </div>
+              <p className="mt-3 text-xs font-bold text-[#8b7a98]">Marge brute cible: +{margin(product).toFixed(2)} EUR</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="border-y border-[#ffd6ea] bg-[#281c3d] py-16 text-white">
+        <div className="shell grid gap-8 md:grid-cols-[1fr_1fr]">
+          <div>
+            <p className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm font-black text-[#8df7e4]">
+              <Gift size={16} />
+              Dropshipping propre
+            </p>
+            <h2 className="mt-5 text-3xl font-black">CJdropshipping est le fournisseur prevu.</h2>
+          </div>
+          <div className="text-sm leading-7 text-white/75">
+            Le site est pret pour recevoir une cle API CJ. Sans cle, il affiche le catalogue de lancement. Avec la cle, on peut chercher les vrais produits, verifier les prix fournisseur et preparer les commandes automatiquement apres paiement.
+          </div>
+        </div>
+      </section>
     </main>
   );
 }

@@ -1,15 +1,15 @@
 {
-  "name": "ResellScore",
-  "short_name": "ResellScore",
-  "description": "Radar de revente et analyse d'annonces Vinted.",
+  "name": "Squishy Need You",
+  "short_name": "Squishy",
+  "description": "Boutique kawaii de squishies, dumplings et anti-stress.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#050807",
-  "theme_color": "#43e878",
+  "background_color": "#fff8fb",
+  "theme_color": "#ff6fb1",
   "icons": [
     {
-      "src": "/resellscore-icon.svg",
+      "src": "/squishy-dumpling.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any maskable"

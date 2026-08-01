@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600">
+  <rect width="600" height="600" rx="70" fill="#f3e8ff"/>
+  <circle cx="104" cy="138" r="92" fill="#86efac"/>
+  <circle cx="486" cy="452" r="125" fill="#fde68a"/>
+  <ellipse cx="300" cy="366" rx="128" ry="92" fill="#ffb7d5"/>
+  <circle cx="180" cy="267" r="48" fill="#ffd1e2"/>
+  <circle cx="260" cy="224" r="52" fill="#ffd1e2"/>
+  <circle cx="340" cy="224" r="52" fill="#ffd1e2"/>
+  <circle cx="420" cy="267" r="48" fill="#ffd1e2"/>
+  <path d="M249 373c32 22 70 22 102 0" fill="none" stroke="#7f3b57" stroke-width="12" stroke-linecap="round"/>
+  <text x="300" y="540" text-anchor="middle" font-family="Arial" font-size="34" font-weight="800" fill="#51324b">Cat Paw Pudding</text>
+</svg>

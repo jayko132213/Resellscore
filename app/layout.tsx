@@ -6,13 +6,13 @@ import { SessionDeviceTracker } from "@/components/session-device-tracker";
 import { LoginSuccessToast } from "@/components/login-success-toast";
 
 export const metadata: Metadata = {
-  title: "ResellScore",
-  description: "Analyse une annonce Vinted en quelques secondes et decouvre si elle vaut le coup.",
+  title: "Squishy Need You",
+  description: "Boutique kawaii de squishies, dumplings et jouets anti-stress.",
   manifest: "/manifest.webmanifest",
   icons: {
-    icon: "/resellscore-icon.svg",
-    shortcut: "/resellscore-icon.svg",
-    apple: "/resellscore-icon.svg"
+    icon: "/squishy-dumpling.svg",
+    shortcut: "/squishy-dumpling.svg",
+    apple: "/squishy-dumpling.svg"
   }
 };
 
